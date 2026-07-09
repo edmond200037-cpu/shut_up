@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "checkout.html",
+  "entry": "checkout.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-07-09T09:29:42.208Z",
+  "updatedAt": "2026-07-09T09:29:42.208Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

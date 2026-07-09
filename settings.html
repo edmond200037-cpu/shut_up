@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Swear Word Cash Register · 設定</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topnav" data-od-id="topnav">
+      <div class="topnav-inner">
+        <div class="brand-lockup">
+          <div class="brand-mark">設定</div>
+          <div class="brand-name">Swear Word Cash Register</div>
+        </div>
+        <button class="btn btn-secondary mobile-nav-toggle" type="button" data-nav-toggle>選單</button>
+        <nav class="topnav-links" data-nav-links>
+          <a href="app-home.html">工作區首頁</a>
+          <a href="ledger.html">對話對帳單</a>
+          <a href="checkout.html">結帳</a>
+        </nav>
+        <div class="nav-actions">
+          <span class="pill neutral-pill">自訂價格表</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout section-stack" data-settings-page>
+      <section class="surface-card panel-pad">
+        <div class="section-stack">
+          <div class="app-title-row">
+            <div>
+              <p class="eyebrow">價格表設定</p>
+              <h1 class="app-title">所有細部標籤都由你自己建立，系統不預設任何價目表。</h1>
+            </div>
+            <span class="pill">只留在本機</span>
+          </div>
+          <p class="app-subtitle">這一頁只做價格標籤管理。停用後不再出現在錄音與影像標記按鈕區，但既有歷史紀錄仍保留當時名稱與金額。</p>
+        </div>
+      </section>
+
+      <section class="app-shell">
+        <div class="section-stack">
+          <form class="surface-card panel-pad" data-price-form>
+            <div class="section-stack">
+              <div class="entry-title">新增或編輯價格標籤</div>
+              <div class="range-grid">
+                <label class="field">
+                  <span>標籤名稱</span>
+                  <input class="input" type="text" name="labelName" placeholder="例如：辱罵、威脅、人身攻擊" />
+                </label>
+                <label class="field">
+                  <span>金額</span>
+                  <input class="input" type="number" name="amount" inputmode="decimal" min="0" step="0.01" placeholder="例如：100" />
+                </label>
+              </div>
+              <div class="entry-desc" data-price-warning></div>
+              <div class="record-actions">
+                <button type="submit" class="btn btn-primary" data-submit-label>新增</button>
+              </div>
+            </div>
+          </form>
+
+          <section class="section-stack" data-price-list></section>
+        </div>
+
+        <aside class="section-stack">
+          <div class="safety-banner">
+            <strong class="entry-title">本機資料提醒</strong>
+            <div class="warning-list">
+              <span>本工具不提供帳號備份或雲端同步。</span>
+              <span>清除瀏覽器資料、使用無痕模式或更換裝置，可能導致紀錄遺失。</span>
+              <span>同名標籤允許存在，但之後可能造成閱讀混淆。</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>已建立的細部標籤紀錄，必須保留建立當下的名稱與金額。</span>
+        <span data-toast hidden></span>
+      </div>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Swear Word Cash Register · 新增影像紀錄</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topnav" data-od-id="topnav">
+      <div class="topnav-inner">
+        <div class="brand-lockup">
+          <div class="brand-mark">影像</div>
+          <div class="brand-name">Swear Word Cash Register</div>
+        </div>
+        <button class="btn btn-secondary mobile-nav-toggle" type="button" data-nav-toggle>選單</button>
+        <nav class="topnav-links" data-nav-links>
+          <a href="app-home.html">工作區首頁</a>
+          <a href="ledger.html">對話對帳單</a>
+          <a href="settings.html">設定</a>
+        </nav>
+        <div class="nav-actions">
+          <span class="pill neutral-pill">影像證據</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout section-stack" data-image-page>
+      <section class="surface-card panel-pad">
+        <div class="section-stack">
+          <div class="app-title-row">
+            <div>
+              <p class="eyebrow">新增影像紀錄</p>
+              <h1 class="app-title">上傳照片或截圖後，直接建立正式細部標籤，讓它馬上進入台帳與結帳。</h1>
+            </div>
+            <span class="pill">JPG / PNG / WebP</span>
+          </div>
+          <p class="app-subtitle">影像本身不是結帳來源；真正會被統計的，是你手動建立的 image 類型 DetailedLabelRecord。</p>
+        </div>
+      </section>
+
+      <section class="app-shell">
+        <div class="section-stack">
+          <form class="surface-card panel-pad section-stack" data-image-form>
+            <label class="field">
+              <span>影像檔案</span>
+              <input class="input" type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" />
+            </label>
+
+            <div class="range-grid">
+              <label class="field">
+                <span>紀錄日期</span>
+                <input class="input" type="date" name="recordDate" />
+              </label>
+              <label class="field">
+                <span>紀錄時間</span>
+                <input class="input" type="time" name="recordTime" />
+              </label>
+            </div>
+
+            <div class="section-stack">
+              <div class="entry-title">選擇細部標籤</div>
+              <div class="price-grid label-grid" data-image-labels></div>
+            </div>
+
+            <label class="field">
+              <span>備註，可選填</span>
+              <textarea class="textarea" name="note" placeholder="例如：對方傳來的截圖、公開群組內文、現場照片"></textarea>
+            </label>
+
+            <div class="record-actions">
+              <button type="submit" class="btn btn-primary">儲存影像紀錄</button>
+              <a class="btn btn-secondary" href="ledger.html">查看對帳單</a>
+            </div>
+            <div class="entry-desc" data-image-status></div>
+          </form>
+        </div>
+
+        <aside class="section-stack">
+          <section class="surface-card panel-pad">
+            <div class="section-stack">
+              <div class="entry-title">影像預覽</div>
+              <div class="image-preview-shell" data-image-preview></div>
+            </div>
+          </section>
+
+          <div class="safety-banner">
+            <strong class="entry-title">本機資料提醒</strong>
+            <div class="warning-list">
+              <span>本工具不提供帳號備份或雲端同步。</span>
+              <span>清除瀏覽器資料、使用無痕模式或更換裝置，可能導致紀錄遺失。</span>
+              <span>若影像檔遺失，既有標籤與備註仍應保留。</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>儲存成功後，影像紀錄會同時進入當天台帳與結帳資料來源。</span>
+        <span data-toast hidden></span>
+      </div>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

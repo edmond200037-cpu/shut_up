@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "image-new.html",
+  "entry": "image-new.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-07-09T12:35:38.521Z",
+  "updatedAt": "2026-07-09T12:35:38.521Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

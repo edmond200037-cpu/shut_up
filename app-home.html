@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Swear Word Cash Register · 五大入口</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topnav" data-od-id="topnav">
+      <div class="topnav-inner">
+        <div class="brand-lockup">
+          <div class="brand-mark">首頁</div>
+          <div class="brand-name">Swear Word Cash Register</div>
+        </div>
+        <button class="btn btn-secondary mobile-nav-toggle" type="button" data-nav-toggle>選單</button>
+        <nav class="topnav-links" data-nav-links>
+          <a href="landing.html">產品首頁</a>
+          <a href="recording.html">對話錄音</a>
+          <a href="ledger.html">對話對帳單</a>
+          <a href="checkout.html">結帳</a>
+          <a href="index.html">原型入口</a>
+        </nav>
+        <div class="nav-actions">
+          <span class="pill neutral-pill">本機工作區</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout section-stack">
+      <section class="app-shell" data-od-id="app-home-shell">
+        <div class="section-stack">
+          <div class="app-header surface-card panel-pad">
+            <div class="app-title-row">
+              <div>
+                <p class="eyebrow">五大入口</p>
+                <h1 class="app-title">今天的紀錄先從哪裡開始，由你自己決定。</h1>
+              </div>
+              <span class="pill">資料只留在這台裝置</span>
+            </div>
+            <p class="app-subtitle">首頁把最常用的五個模組放在同一層：對話錄音、新增圖片紀錄、對話台帳、結帳、設定。這一輪先把錄音與結帳流程做成可操作原型。</p>
+          </div>
+
+          <section class="entry-grid" data-od-id="home-entry-grid">
+            <a class="entry-card" href="recording.html">
+              <div class="entry-head">
+                <div>
+                  <div class="entry-title">對話錄音</div>
+                  <div class="entry-desc">開始錄音、暫停、恢復、停止，並在過程中標記關鍵時刻。</div>
+                </div>
+                <div class="num-badge">01</div>
+              </div>
+              <span class="note">本輪已完成互動示意</span>
+            </a>
+            <a class="entry-card" href="image-new.html">
+              <div class="entry-head">
+                <div>
+                  <div class="entry-title">新增圖片紀錄</div>
+                  <div class="entry-desc">上傳截圖或照片，直接套用詳細標籤與選填說明。</div>
+                </div>
+                <div class="num-badge">02</div>
+              </div>
+              <span class="note">已接進同一份本機資料結構</span>
+            </a>
+            <a class="entry-card" href="ledger.html">
+              <div class="entry-head">
+                <div>
+                  <div class="entry-title">對話台帳</div>
+                  <div class="entry-desc">用日曆選日期，再進入當天音檔與圖片紀錄，逐筆補標。</div>
+                </div>
+                <div class="num-badge">03</div>
+              </div>
+              <span class="note">已補成可走通的日曆與日期明細骨架</span>
+            </a>
+            <a class="entry-card" href="checkout.html">
+              <div class="entry-head">
+                <div>
+                  <div class="entry-title">結帳</div>
+                  <div class="entry-desc">選日期範圍、檢查總表、切換收據摘要與正式報告預覽。</div>
+                </div>
+                <div class="num-badge">04</div>
+              </div>
+              <span class="note">本輪已完成高擬真預覽</span>
+            </a>
+            <a class="entry-card" href="settings.html">
+              <div class="entry-head">
+                <div>
+                  <div class="entry-title">設定</div>
+                  <div class="entry-desc">管理使用者自建標籤、價格與啟用狀態，供台帳與結帳引用。</div>
+                </div>
+                <div class="num-badge">05</div>
+              </div>
+              <span class="note">標籤沿用使用者自建資料，不提供系統預設價目表</span>
+            </a>
+          </section>
+        </div>
+
+        <aside class="section-stack">
+          <div class="safety-banner" data-od-id="home-safety-banner">
+            <strong class="entry-title">使用前提醒</strong>
+            <div class="warning-list">
+              <span>沒有帳號備份、沒有雲端同步。</span>
+              <span>無痕模式與清除瀏覽器資料都可能讓紀錄消失。</span>
+              <span>正式報告僅為個人整理，不提供法律建議。</span>
+            </div>
+          </div>
+          <div class="summary-grid" data-home-stats data-od-id="home-summary-grid"></div>
+          <div class="surface-card panel-pad" data-od-id="home-next-step">
+            <div class="section-stack">
+              <div>
+                <strong class="entry-title">建議這樣看第一版</strong>
+                <p class="entry-desc">先開錄音流程，建立兩三筆標記與標籤，再切到結帳頁看雙報表如何承接。</p>
+              </div>
+              <div class="record-actions">
+                <a class="btn btn-primary" href="recording.html">前往對話錄音</a>
+                <a class="btn btn-secondary" href="ledger.html">查看對帳單</a>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>若要真正保留資料，正式 MVP 仍需補上本機匯出備份方案。</span>
+        <span data-toast hidden></span>
+      </div>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
