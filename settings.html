@@ -26,7 +26,7 @@
       </div>
     </header>
 
-    <main class="layout section-stack" data-settings-page>
+    <main class="layout section-stack" data-settings-page data-settings-standalone="true">
       <section class="surface-card panel-pad">
         <div class="section-stack">
           <div class="app-title-row">
@@ -44,7 +44,14 @@
         <div class="section-stack">
           <form class="surface-card panel-pad" data-price-form>
             <div class="section-stack">
-              <div class="entry-title">新增或編輯價格標籤</div>
+              <div class="section-stack" style="gap:8px;">
+                <div class="entry-title">價格標籤</div>
+                <div class="entry-desc">新增新標籤，或點右下方列表的「編輯」回來修改。</div>
+              </div>
+              <label class="field">
+                <span>搜尋價格標籤</span>
+                <input class="input" type="search" name="labelSearch" placeholder="輸入標籤名稱或金額" autocomplete="off" />
+              </label>
               <div class="range-grid">
                 <label class="field">
                   <span>標籤名稱</span>
@@ -57,7 +64,7 @@
               </div>
               <div class="entry-desc" data-price-warning></div>
               <div class="record-actions">
-                <button type="submit" class="btn btn-primary" data-submit-label>新增</button>
+                <button type="button" class="btn btn-primary" data-submit-label>新增</button>
               </div>
             </div>
           </form>
@@ -86,5 +93,377 @@
     </footer>
   </div>
   <script src="app.js"></script>
+  <script>
+    (() => {
+      const PRICE_KEY = "swear-word-cash-register.price-labels.v1";
+      const DEBUG_VERSION = "settings-debug-2026-07-11-1";
+      const form = document.querySelector("[data-price-form]");
+      const listNode = document.querySelector("[data-price-list]");
+      const warningNode = document.querySelector("[data-price-warning]");
+      const submitLabelNode = document.querySelector("[data-submit-label]");
+      const toastNode = document.querySelector("[data-toast]");
+      const debugSummaryNode = document.querySelector("[data-debug-summary]");
+      const debugLogNode = document.querySelector("[data-debug-log]");
+      const searchInput = form?.elements.namedItem("labelSearch");
+      const labelNameInput = form?.elements.namedItem("labelName");
+      const amountInput = form?.elements.namedItem("amount");
+      let editingId = null;
+      let pendingDeleteId = null;
+      let pendingDeleteTimer = null;
+
+      const debugState = {
+        version: DEBUG_VERSION,
+        stage: "script-loading",
+        submitCount: 0,
+        clickCount: 0,
+        labelName: "",
+        amount: "",
+        labelsBeforeSave: 0,
+        labelsAfterSave: 0,
+        renderedCount: 0,
+        storageExists: false,
+        saveSucceeded: null,
+        lastMessage: "等待腳本初始化"
+      };
+
+      if (!form || !listNode || !searchInput || !labelNameInput || !amountInput) return;
+
+      const updateDebug = (patch = {}) => {
+        Object.assign(debugState, patch);
+        debugState.storageExists = localStorage.getItem(PRICE_KEY) !== null;
+        if (debugSummaryNode) {
+          debugSummaryNode.textContent = `目前階段：${debugState.stage}｜submit 次數：${debugState.submitCount}`;
+        }
+        if (debugLogNode) {
+          debugLogNode.textContent = [
+            `version: ${debugState.version}`,
+            `stage: ${debugState.stage}`,
+            `submitCount: ${debugState.submitCount}`,
+            `clickCount: ${debugState.clickCount}`,
+            `labelName: ${debugState.labelName || "（空白）"}`,
+            `amount: ${debugState.amount || "（空白）"}`,
+            `labelsBeforeSave: ${debugState.labelsBeforeSave}`,
+            `labelsAfterSave: ${debugState.labelsAfterSave}`,
+            `renderedCount: ${debugState.renderedCount}`,
+            `storageExists: ${debugState.storageExists ? "yes" : "no"}`,
+            `saveSucceeded: ${debugState.saveSucceeded === null ? "not-yet" : debugState.saveSucceeded ? "yes" : "no"}`,
+            `lastMessage: ${debugState.lastMessage}`
+          ].join("\n");
+        }
+      };
+
+      const createId = () =>
+        window.crypto?.randomUUID ? window.crypto.randomUUID() : `id_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+      const nowIso = () => new Date().toISOString();
+      const parseMoney = (value) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
+      };
+
+      const escapeHtml = (value) =>
+        String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+
+      const formatCurrency = (value) =>
+        new Intl.NumberFormat("zh-TW", {
+          style: "currency",
+          currency: "TWD",
+          maximumFractionDigits: 0
+        }).format(Number(value) || 0);
+
+      const showToast = (message) => {
+        if (!toastNode) return;
+        toastNode.hidden = false;
+        toastNode.textContent = message;
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => {
+          toastNode.hidden = true;
+          toastNode.textContent = "";
+        }, 2600);
+      };
+
+      const loadLabels = () => {
+        try {
+          const raw = localStorage.getItem(PRICE_KEY);
+          const labels = raw ? JSON.parse(raw) : [];
+          return Array.isArray(labels)
+            ? labels.map((label) => ({
+                id: label.id || createId(),
+                labelName: label.labelName || "未命名標籤",
+                amount: parseMoney(label.amount),
+                isActive: label.isActive !== false,
+                createdAt: label.createdAt || nowIso(),
+                updatedAt: label.updatedAt || label.createdAt || nowIso()
+              }))
+            : [];
+        } catch {
+          return [];
+        }
+      };
+
+      const saveLabels = (labels) => {
+        try {
+          localStorage.setItem(PRICE_KEY, JSON.stringify(labels));
+          updateDebug({
+            stage: "save-success",
+            labelsAfterSave: labels.length,
+            saveSucceeded: true,
+            lastMessage: "價格表已成功寫入本機"
+          });
+          return true;
+        } catch {
+          warningNode.textContent = "目前無法寫入本機價格表。請確認不是無痕模式，或先清出一些瀏覽器儲存空間。";
+          updateDebug({
+            stage: "save-failed",
+            labelsAfterSave: labels.length,
+            saveSucceeded: false,
+            lastMessage: "localStorage 寫入失敗"
+          });
+          showToast("本機價格表寫入失敗。");
+          return false;
+        }
+      };
+
+      const resetForm = () => {
+        editingId = null;
+        labelNameInput.value = "";
+        amountInput.value = "";
+        submitLabelNode.textContent = "新增";
+      };
+
+      const clearPendingDelete = () => {
+        pendingDeleteId = null;
+        if (pendingDeleteTimer) {
+          clearTimeout(pendingDeleteTimer);
+          pendingDeleteTimer = null;
+        }
+      };
+
+      const renderEmptyState = (mode = "no-labels") => {
+        const isSearchEmpty = mode === "no-results";
+        listNode.innerHTML = `
+          <div class="empty-state">
+            <strong>${isSearchEmpty ? "找不到符合的價格標籤。" : "尚未建立價格項目。"}</strong>
+            <span>${isSearchEmpty ? "請換個關鍵字，或直接新增新的價格標籤。" : "請先新增至少一個細部標籤，才能開始標記對話或照片。"}</span>
+          </div>
+        `;
+      };
+
+      const render = () => {
+        clearPendingDelete();
+        updateDebug({
+          stage: "render-start",
+          lastMessage: "準備重繪價格項目表"
+        });
+        const labels = loadLabels().sort((left, right) => new Date(right.updatedAt) - new Date(left.updatedAt));
+        const keyword = String(searchInput.value || "").trim().toLowerCase();
+        if (!labels.length) {
+          renderEmptyState("no-labels");
+          updateDebug({
+            stage: "render-empty",
+            renderedCount: 0,
+            lastMessage: "目前沒有任何價格項目"
+          });
+          return;
+        }
+
+        const filteredLabels = keyword
+          ? labels.filter((label) => {
+              const nameMatch = label.labelName.toLowerCase().includes(keyword);
+              const amountMatch = String(label.amount).includes(keyword) || formatCurrency(label.amount).toLowerCase().includes(keyword);
+              return nameMatch || amountMatch;
+            })
+          : labels;
+
+        if (!filteredLabels.length) {
+          renderEmptyState("no-results");
+          updateDebug({
+            stage: "render-filter-empty",
+            renderedCount: 0,
+            lastMessage: "目前沒有符合搜尋的價格項目"
+          });
+          return;
+        }
+
+        listNode.innerHTML = filteredLabels
+          .map(
+            (label) => `
+              <article class="price-item">
+                <div class="record-head" style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+                  <div style="min-width:0; flex:1;">
+                    <div class="detail-title">${escapeHtml(label.labelName)}</div>
+                    <div class="detail-label">${escapeHtml(formatCurrency(label.amount))}</div>
+                  </div>
+                  <div class="detail-actions" style="justify-content:flex-end; align-items:center; margin-left:auto; flex-shrink:0;">
+                    <button type="button" class="btn btn-secondary" data-edit-label="${label.id}">編輯</button>
+                    <button type="button" class="btn btn-ghost" data-delete-label="${label.id}">刪除</button>
+                  </div>
+                </div>
+              </article>
+            `
+          )
+          .join("");
+
+        listNode.querySelectorAll("[data-edit-label]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const label = loadLabels().find((item) => item.id === button.dataset.editLabel);
+            if (!label) return;
+            editingId = label.id;
+            labelNameInput.value = label.labelName;
+            amountInput.value = String(label.amount);
+            submitLabelNode.textContent = "儲存修改";
+            const formTop = form.getBoundingClientRect().top + window.scrollY - 24;
+            window.scrollTo({
+              top: Math.max(0, formTop),
+              behavior: "smooth"
+            });
+            window.setTimeout(() => {
+              labelNameInput.focus();
+              labelNameInput.select();
+            }, 220);
+          });
+        });
+
+        listNode.querySelectorAll("[data-delete-label]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const targetId = button.dataset.deleteLabel;
+            if (!targetId) return;
+
+            if (pendingDeleteId !== targetId) {
+              clearPendingDelete();
+              pendingDeleteId = targetId;
+              button.textContent = "確認刪除";
+              button.classList.remove("btn-ghost");
+              button.classList.add("btn-secondary");
+              pendingDeleteTimer = window.setTimeout(() => {
+                if (pendingDeleteId !== targetId) return;
+                button.textContent = "刪除";
+                button.classList.remove("btn-secondary");
+                button.classList.add("btn-ghost");
+                clearPendingDelete();
+              }, 2400);
+              showToast("再按一次「確認刪除」才會刪除。");
+              return;
+            }
+
+            const labelsState = loadLabels().filter((item) => item.id !== button.dataset.deleteLabel);
+            if (!saveLabels(labelsState)) return;
+            clearPendingDelete();
+            render();
+            showToast("價格項目已刪除。");
+          });
+        });
+
+        updateDebug({
+          stage: "render-complete",
+          renderedCount: filteredLabels.length,
+          lastMessage: "價格項目表已完成重繪"
+        });
+      };
+
+      const handlePriceSubmit = (source = "submit") => {
+        warningNode.textContent = "";
+        const labelName = String(labelNameInput.value || "").trim();
+        const amount = String(amountInput.value || "").trim();
+        updateDebug({
+          stage: source === "click" ? "click-entered" : "submit-entered",
+          submitCount: source === "submit" ? debugState.submitCount + 1 : debugState.submitCount,
+          clickCount: source === "click" ? debugState.clickCount + 1 : debugState.clickCount,
+          labelName,
+          amount,
+          lastMessage: source === "click" ? "已進入按鈕 click handler" : "已進入 submit handler"
+        });
+        if (!labelName) {
+          warningNode.textContent = "標籤名稱不可空白。";
+          updateDebug({
+            stage: "validation-failed",
+            lastMessage: "標籤名稱不可空白"
+          });
+          return;
+        }
+        if (amount === "") {
+          warningNode.textContent = "金額不可空白。";
+          updateDebug({
+            stage: "validation-failed",
+            lastMessage: "金額不可空白"
+          });
+          return;
+        }
+        if (!/^\d+(\.\d{1,2})?$/.test(amount)) {
+          warningNode.textContent = "金額必須為 0 或正數，且最多只到小數點後 2 位。";
+          updateDebug({
+            stage: "validation-failed",
+            lastMessage: "金額格式不正確"
+          });
+          return;
+        }
+
+        const labelsState = loadLabels();
+        updateDebug({
+          stage: "submit-processing",
+          labelsBeforeSave: labelsState.length,
+          lastMessage: "已讀取目前價格表"
+        });
+        const duplicate = labelsState.find((item) => item.id !== editingId && item.labelName.trim() === labelName);
+        if (duplicate) {
+          warningNode.textContent = "提醒：已有同名標籤，雖然允許建立，但之後可能造成混淆。";
+          updateDebug({
+            lastMessage: "偵測到同名標籤，但仍允許送出"
+          });
+        }
+
+        const now = nowIso();
+        const existing = labelsState.find((item) => item.id === editingId);
+        if (existing) {
+          existing.labelName = labelName;
+          existing.amount = parseMoney(amount);
+          existing.updatedAt = now;
+        } else {
+          labelsState.unshift({
+            id: createId(),
+            labelName,
+            amount: parseMoney(amount),
+            isActive: true,
+            createdAt: now,
+            updatedAt: now
+          });
+        }
+
+        if (!saveLabels(labelsState)) return;
+        const wasEditing = Boolean(editingId);
+        resetForm();
+        render();
+        updateDebug({
+          stage: source === "click" ? "click-finished" : "submit-finished",
+          lastMessage: wasEditing ? "編輯流程完成" : "新增流程完成"
+        });
+        showToast(wasEditing ? "價格項目已更新。" : "價格項目已新增。");
+      };
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        handlePriceSubmit("submit");
+      });
+
+      submitLabelNode.addEventListener("click", () => {
+        handlePriceSubmit("click");
+      });
+
+      searchInput.addEventListener("input", () => {
+        render();
+      });
+
+      updateDebug({
+        stage: "script-ready",
+        lastMessage: "設定頁價格表腳本已完成初始化"
+      });
+      render();
+    })();
+  </script>
 </body>
 </html>

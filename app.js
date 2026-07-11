@@ -1,5 +1,6 @@
 const APP_STORAGE_KEY = "swear-word-cash-register.v2";
 const APP_UI_KEY = "swear-word-cash-register.ui";
+const APP_PRICE_LABELS_KEY = "swear-word-cash-register.price-labels.v1";
 
 const createId = () => {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -105,6 +106,26 @@ const defaultAppState = () => ({
   fileBlobs: []
 });
 
+const normalizePriceLabels = (labels) =>
+  normalizeArray(labels).map((label) => ({
+    id: label.id || createId(),
+    labelName: label.labelName || "未命名標籤",
+    amount: parseMoney(label.amount),
+    isActive: label.isActive !== false,
+    createdAt: label.createdAt || nowIso(),
+    updatedAt: label.updatedAt || label.createdAt || nowIso()
+  }));
+
+const loadStandalonePriceLabels = () => {
+  try {
+    const raw = localStorage.getItem(APP_PRICE_LABELS_KEY);
+    if (!raw) return null;
+    return normalizePriceLabels(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+};
+
 const migrateLegacyState = (raw) => {
   const base = defaultAppState();
   if (!raw || typeof raw !== "object") return base;
@@ -148,14 +169,7 @@ const migrateLegacyState = (raw) => {
     });
   }
 
-  next.priceLabels = next.priceLabels.map((label) => ({
-    id: label.id || createId(),
-    labelName: label.labelName || "未命名標籤",
-    amount: parseMoney(label.amount),
-    isActive: label.isActive !== false,
-    createdAt: label.createdAt || nowIso(),
-    updatedAt: label.updatedAt || label.createdAt || nowIso()
-  }));
+  next.priceLabels = normalizePriceLabels(next.priceLabels);
 
   next.audioRecords = next.audioRecords.map((record) => ({
     id: record.id || createId(),
@@ -216,19 +230,83 @@ const migrateLegacyState = (raw) => {
 const loadAppState = () => {
   try {
     const raw = localStorage.getItem(APP_STORAGE_KEY);
-    return raw ? migrateLegacyState(JSON.parse(raw)) : defaultAppState();
+    const nextState = raw ? migrateLegacyState(JSON.parse(raw)) : defaultAppState();
+    const standalonePriceLabels = loadStandalonePriceLabels();
+    if (standalonePriceLabels !== null) {
+      nextState.priceLabels = standalonePriceLabels;
+    }
+    return nextState;
   } catch {
-    return defaultAppState();
+    const nextState = defaultAppState();
+    const standalonePriceLabels = loadStandalonePriceLabels();
+    if (standalonePriceLabels !== null) {
+      nextState.priceLabels = standalonePriceLabels;
+    }
+    return nextState;
   }
 };
 
 let appState = loadAppState();
-const saveAppState = () => localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
+let lastPersistenceError = "";
+const getPersistenceErrorMessage = (error) => {
+  if (error?.name === "QuotaExceededError") {
+    return "本機儲存空間已滿，這次變更目前只留在畫面上；重新整理後可能消失。請先刪除部分影像或舊紀錄後再試一次。";
+  }
+  return "目前無法寫入本機資料。這次變更目前只留在畫面上；重新整理後可能消失。";
+};
+const saveStandalonePriceLabels = () => {
+  localStorage.setItem(APP_PRICE_LABELS_KEY, JSON.stringify(appState.priceLabels));
+};
+const saveAppState = () => {
+  try {
+    saveStandalonePriceLabels();
+    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
+    lastPersistenceError = "";
+    return true;
+  } catch (error) {
+    lastPersistenceError = getPersistenceErrorMessage(error);
+    return false;
+  }
+};
 
-const getActiveLabels = () =>
-  [...appState.priceLabels]
+const savePriceLabelsOnly = () => {
+  try {
+    saveStandalonePriceLabels();
+    lastPersistenceError = "";
+    return true;
+  } catch (error) {
+    lastPersistenceError = getPersistenceErrorMessage(error);
+    return false;
+  }
+};
+
+const syncPriceLabelsFromStandalone = () => {
+  const standalonePriceLabels = loadStandalonePriceLabels();
+  if (standalonePriceLabels !== null) {
+    appState.priceLabels = standalonePriceLabels;
+  }
+};
+
+const getActiveLabels = () => {
+  syncPriceLabelsFromStandalone();
+  return [...appState.priceLabels]
     .filter((label) => label.isActive)
     .sort((left, right) => left.labelName.localeCompare(right.labelName, "zh-Hant"));
+};
+
+const bindPriceLabelRefresh = (renderLabels) => {
+  const refresh = () => renderLabels();
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") refresh();
+  };
+  const handleStorageChange = (event) => {
+    if (event.key === APP_PRICE_LABELS_KEY) refresh();
+  };
+
+  window.addEventListener("focus", refresh);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("storage", handleStorageChange);
+};
 
 const getAudioById = (id) => appState.audioRecords.find((record) => record.id === id) || null;
 const getImageById = (id) => appState.imageRecords.find((record) => record.id === id) || null;
@@ -302,7 +380,7 @@ const upsertPriceLabel = ({ id, labelName, amount }) => {
       updatedAt: now
     });
   }
-  saveAppState();
+  return savePriceLabelsOnly();
 };
 
 const createAudioRecord = ({ sourceType, fileName, duration = 0, initialMarkers = [] }) => {
@@ -809,6 +887,7 @@ const initRecordingPage = () => {
   renderMarkers();
   renderLabels();
   renderDetailList();
+  bindPriceLabelRefresh(renderLabels);
 };
 
 const initCheckoutPage = () => {
@@ -981,6 +1060,7 @@ const initCheckoutPage = () => {
 const initSettingsPage = () => {
   const page = document.querySelector("[data-settings-page]");
   if (!page) return;
+  if (page.dataset.settingsStandalone === "true") return;
 
   const form = document.querySelector("[data-price-form]");
   const labelNameInput = form.elements.namedItem("labelName");
@@ -1044,9 +1124,14 @@ const initSettingsPage = () => {
         if (!label) return;
         label.isActive = !label.isActive;
         label.updatedAt = nowIso();
-        saveAppState();
+        savePriceLabelsOnly();
         render();
         renderHomeSummary();
+        if (lastPersistenceError) {
+          warningNode.textContent = lastPersistenceError;
+          showToast(lastPersistenceError);
+          return;
+        }
         showToast(label.isActive ? "價格項目已重新啟用。" : "價格項目已停用。");
       });
     });
@@ -1055,9 +1140,14 @@ const initSettingsPage = () => {
       button.addEventListener("click", () => {
         if (!window.confirm("確定要刪除這個價格項目嗎？已建立的歷史標籤紀錄不會被刪除。")) return;
         appState.priceLabels = appState.priceLabels.filter((item) => item.id !== button.dataset.deleteLabel);
-        saveAppState();
+        savePriceLabelsOnly();
         render();
         renderHomeSummary();
+        if (lastPersistenceError) {
+          warningNode.textContent = lastPersistenceError;
+          showToast(lastPersistenceError);
+          return;
+        }
         showToast("價格項目已刪除。");
       });
     });
@@ -1076,11 +1166,18 @@ const initSettingsPage = () => {
     }
     const duplicate = appState.priceLabels.find((item) => item.id !== editingId && item.labelName.trim() === labelName);
     if (duplicate) warningNode.textContent = "提醒：已有同名標籤，雖然允許建立，但之後可能造成混淆。";
-    upsertPriceLabel({ id: editingId, labelName, amount });
+    const duplicateWarning = warningNode.textContent;
+    const saved = upsertPriceLabel({ id: editingId, labelName, amount });
     const wasEditing = Boolean(editingId);
     resetForm();
     render();
     renderHomeSummary();
+    if (!saved && lastPersistenceError) {
+      warningNode.textContent = duplicateWarning ? `${duplicateWarning} ${lastPersistenceError}` : lastPersistenceError;
+      showToast(lastPersistenceError);
+      return;
+    }
+    warningNode.textContent = duplicateWarning;
     showToast(wasEditing ? "價格項目已更新。" : "價格項目已新增。");
   });
 
@@ -1401,6 +1498,7 @@ const initLedgerPage = () => {
   });
 
   render();
+  bindPriceLabelRefresh(renderLabels);
 };
 
 const fileToDataUrl = (file) =>
@@ -1505,6 +1603,7 @@ const initImagePage = () => {
   recordTimeInput.value = new Date().toISOString().slice(11, 16);
   renderLabels();
   renderPreview();
+  bindPriceLabelRefresh(renderLabels);
 };
 
 const initPage = () => {
