@@ -12,8 +12,8 @@
         column-gap: clamp(24px, 2.4vw, 32px);
         row-gap: 24px;
         grid-template-areas:
-          "mode labels"
-          "record details"
+          "record labels"
+          "markers details"
           "markers warnings";
         align-items: start;
       }
@@ -21,10 +21,6 @@
       [data-od-id="recording-shell"] > .section-stack,
       [data-od-id="recording-shell"] > aside {
         display: contents;
-      }
-
-      [data-od-id="recording-mode-switch"] {
-        grid-area: mode;
       }
 
       [data-od-id="record-panel"],
@@ -97,21 +93,18 @@
 
       <section class="app-shell" data-od-id="recording-shell">
         <div class="section-stack">
-          <div class="surface-card panel-pad">
-            <div class="price-grid" data-od-id="recording-mode-switch">
-              <button type="button" class="mode-button" data-mode="record">模式 A · 直接錄音</button>
-              <button type="button" class="mode-button" data-mode="upload">模式 B · 上傳音檔</button>
-            </div>
-          </div>
-
           <div class="surface-card panel-pad" data-record-panel data-od-id="record-panel">
             <div class="record-console">
               <div class="record-head">
                 <div>
-                  <div class="entry-title">現場錄音</div>
-                  <div class="detail-label">錄音中可隨時按「標記這一刻」，不需要先決定標籤名稱。</div>
+                  <div class="entry-title">選擇模式與現場錄音</div>
+                  <div class="detail-label">先切換 A / B，再在同一區塊直接開始錄音或上傳音檔，最後都回到同一套標記流程。</div>
                 </div>
-                <span class="pill neutral-pill">麥克風權限示意</span>
+                <span class="pill neutral-pill">同一區塊</span>
+              </div>
+              <div class="price-grid" data-od-id="recording-mode-switch">
+                <button type="button" class="mode-button" data-mode="record">模式 A · 直接錄音</button>
+                <button type="button" class="mode-button" data-mode="upload">模式 B · 上傳音檔</button>
               </div>
               <strong class="record-timer mono" data-record-timer>00:00</strong>
               <div class="record-meter"><div class="record-meter-fill" data-meter></div></div>
