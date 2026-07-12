@@ -5,6 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Swear Word Cash Register · 對話錄音</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    @media (min-width: 1100px) {
+      [data-od-id="recording-shell"] {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        column-gap: clamp(24px, 2.4vw, 32px);
+        row-gap: 24px;
+        grid-template-areas:
+          "mode labels"
+          "record details"
+          "markers warnings";
+        align-items: start;
+      }
+
+      [data-od-id="recording-shell"] > .section-stack,
+      [data-od-id="recording-shell"] > aside {
+        display: contents;
+      }
+
+      [data-od-id="recording-mode-switch"] {
+        grid-area: mode;
+      }
+
+      [data-od-id="record-panel"],
+      [data-od-id="upload-panel"] {
+        grid-area: record;
+      }
+
+      [data-od-id="marker-navigation"] {
+        grid-area: markers;
+      }
+
+      [data-od-id="label-buttons"] {
+        grid-area: labels;
+      }
+
+      [data-od-id="detail-records"] {
+        grid-area: details;
+      }
+
+      [data-od-id="recording-warnings"] {
+        grid-area: warnings;
+      }
+
+      [data-od-id="label-buttons"],
+      [data-od-id="detail-records"],
+      [data-od-id="recording-warnings"] {
+        padding: var(--space-6);
+      }
+
+      [data-od-id="label-buttons"] .label-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-height: none;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="page-shell">
@@ -18,7 +73,7 @@
         <nav class="topnav-links" data-nav-links>
           <a href="app-home.html">工作區首頁</a>
           <a href="checkout.html">結帳</a>
-          <a href="landing.html">產品首頁</a>
+          <a href="ledger.html">對帳單</a>
         </nav>
         <div class="nav-actions">
           <span class="pill neutral-pill">核心流程已打通</span>

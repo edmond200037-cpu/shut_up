@@ -180,6 +180,23 @@ h1, h2, h3, h4, h5, h6 { margin: 0; text-wrap: balance; color: var(--fg-2); }
 .report-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-3); }
 .report-card-grid span { font-size: var(--text-sm); color: var(--muted); }
 .report-card-grid strong { display: block; margin-top: 2px; color: var(--fg); font-size: var(--text-sm); }
+
+/* ─── Checkout desktop alignment ────────────────────────────────── */
+.summary-card { min-height: 142px; align-content: start; }
+[data-checkout-page] .summary-grid { align-items: stretch; }
+
+/* Right sidebar — all three cards share the same inner rhythm */
+[data-checkout-page] .app-shell > aside > :is(.surface-card, .safety-banner) {
+  padding: var(--space-6);
+}
+
+/* Export actions — compact */
+[data-od-id="export-actions"] .record-actions > .btn {
+  justify-content: flex-start;
+  text-align: left;
+  font-size: var(--text-sm);
+}
+
 .report-cards { display: none; }
 .report-table { display: grid; gap: 1px; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--border); }
 .table-row { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 1.5fr 1fr 1fr 1.2fr; gap: 1px; }
@@ -198,9 +215,17 @@ h1, h2, h3, h4, h5, h6 { margin: 0; text-wrap: balance; color: var(--fg-2); }
   .layout { padding-inline: var(--container-gutter-desktop); }
   .hero-grid, .split-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
   .feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .entry-grid, .launcher-grid, .summary-grid, .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .entry-grid, .launcher-grid, .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .app-shell { grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr); align-items: start; }
+  .app-shell { grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); align-items: start; gap: var(--space-8); }
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-checkout-page] .summary-card { padding: var(--space-6); }
+}
+
+/* Desktop wide — checkout final alignment target (1280 / 1440 / 1920) */
+@media (min-width: 1100px) {
+  .app-shell { grid-template-columns: minmax(0, 1fr) 340px; gap: var(--space-10); }
+  .summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 767px) {
   .topnav-inner { padding-inline: var(--container-gutter-phone); flex-wrap: wrap; }

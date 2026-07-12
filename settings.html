@@ -5,6 +5,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Swear Word Cash Register · 設定</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    [data-price-list] {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    [data-price-entry-row] {
+      align-items: end;
+    }
+
+    [data-price-submit-row] {
+      align-items: end;
+    }
+
+    @media (min-width: 1100px) {
+      [data-settings-page] .app-shell {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        column-gap: clamp(24px, 2.4vw, 32px);
+        row-gap: 24px;
+        grid-template-areas:
+          "form warnings"
+          "list warnings";
+        align-items: start;
+      }
+
+      [data-settings-page] .app-shell > .section-stack,
+      [data-settings-page] .app-shell > aside {
+        display: contents;
+      }
+
+      [data-price-form] {
+        grid-area: form;
+      }
+
+      [data-price-list] {
+        grid-area: list;
+      }
+
+      [data-od-id="settings-storage-warning"] {
+        grid-area: warnings;
+        padding: var(--space-6);
+      }
+
+      [data-price-entry-row] {
+        grid-template-columns: minmax(0, 1.6fr) minmax(180px, 0.9fr) auto;
+      }
+
+      [data-price-submit-row] {
+        justify-content: flex-start;
+      }
+
+      [data-price-submit-row] > .btn {
+        white-space: nowrap;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="page-shell">
@@ -52,7 +108,7 @@
                 <span>搜尋價格標籤</span>
                 <input class="input" type="search" name="labelSearch" placeholder="輸入標籤名稱或金額" autocomplete="off" />
               </label>
-              <div class="range-grid">
+              <div class="range-grid" data-price-entry-row>
                 <label class="field">
                   <span>標籤名稱</span>
                   <input class="input" type="text" name="labelName" placeholder="例如：辱罵、威脅、人身攻擊" />
@@ -61,19 +117,19 @@
                   <span>金額</span>
                   <input class="input" type="number" name="amount" inputmode="decimal" min="0" step="0.01" placeholder="例如：100" />
                 </label>
+                <div class="record-actions" data-price-submit-row>
+                  <button type="button" class="btn btn-primary" data-submit-label>新增</button>
+                </div>
               </div>
               <div class="entry-desc" data-price-warning></div>
-              <div class="record-actions">
-                <button type="button" class="btn btn-primary" data-submit-label>新增</button>
-              </div>
             </div>
           </form>
 
-          <section class="section-stack" data-price-list></section>
+          <section class="section-stack" data-price-list data-od-id="settings-price-list"></section>
         </div>
 
         <aside class="section-stack">
-          <div class="safety-banner">
+          <div class="safety-banner" data-od-id="settings-storage-warning">
             <strong class="entry-title">本機資料提醒</strong>
             <div class="warning-list">
               <span>本工具不提供帳號備份或雲端同步。</span>

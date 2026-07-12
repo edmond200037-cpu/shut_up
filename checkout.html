@@ -5,6 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Swear Word Cash Register · 結帳與匯出</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    @media (min-width: 1100px) {
+      [data-checkout-page] .app-shell {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        column-gap: clamp(24px, 2.4vw, 32px);
+        row-gap: 24px;
+        grid-template-areas:
+          "range actions"
+          "summary disclaimer"
+          "preview empty";
+        align-items: stretch;
+      }
+
+      [data-checkout-page] .app-shell > .section-stack {
+        display: contents;
+      }
+
+      [data-checkout-page] [data-od-id="date-range-panel"] {
+        grid-area: range;
+      }
+
+      [data-checkout-page] [data-od-id="checkout-summary"] {
+        grid-area: summary;
+      }
+
+      [data-checkout-page] [data-od-id="preview-tabs"] {
+        grid-area: preview;
+      }
+
+      [data-checkout-page] [data-od-id="export-actions"] {
+        grid-area: actions;
+      }
+
+      [data-checkout-page] [data-od-id="checkout-disclaimer"] {
+        grid-area: disclaimer;
+      }
+
+      [data-checkout-page] [data-od-id="empty-state-guidance"] {
+        grid-area: empty;
+      }
+
+      [data-checkout-page] [data-od-id="date-range-panel"],
+      [data-checkout-page] [data-od-id="checkout-summary"],
+      [data-checkout-page] [data-od-id="preview-tabs"],
+      [data-checkout-page] [data-od-id="export-actions"],
+      [data-checkout-page] [data-od-id="checkout-disclaimer"],
+      [data-checkout-page] [data-od-id="empty-state-guidance"] {
+        height: 100%;
+      }
+
+      [data-checkout-page] [data-od-id="export-actions"],
+      [data-checkout-page] [data-od-id="checkout-disclaimer"],
+      [data-checkout-page] [data-od-id="empty-state-guidance"] {
+        align-self: stretch;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="page-shell">
@@ -18,7 +75,7 @@
         <nav class="topnav-links" data-nav-links>
           <a href="app-home.html">工作區首頁</a>
           <a href="recording.html">錄音流程</a>
-          <a href="landing.html">產品首頁</a>
+          <a href="ledger.html">對帳單</a>
         </nav>
         <div class="nav-actions">
           <span class="pill">雙報表預覽</span>

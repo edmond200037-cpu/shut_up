@@ -5,6 +5,116 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Swear Word Cash Register · 五大入口</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    [data-od-id="home-entry-grid"] {
+      align-items: stretch;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: minmax(0, 1fr);
+    }
+
+    [data-od-id="home-entry-grid"] .entry-card,
+    [data-home-stats] .summary-card {
+      height: 100%;
+      align-content: space-between;
+    }
+
+    [data-od-id="home-entry-grid"] .entry-card {
+      grid-template-rows: auto 1fr auto;
+    }
+
+    [data-od-id="home-entry-grid"] .entry-head {
+      display: grid;
+      gap: var(--space-3);
+      align-items: start;
+    }
+
+    [data-od-id="home-entry-grid"] .entry-copy {
+      display: grid;
+      gap: var(--space-2);
+      min-width: 0;
+    }
+
+    [data-od-id="home-entry-grid"] .entry-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    [data-od-id="home-entry-grid"] .entry-title-row .entry-title {
+      margin: 0;
+    }
+
+    [data-od-id="home-entry-grid"] .num-badge {
+      width: auto;
+      min-width: 36px;
+      padding-inline: 10px;
+      flex: none;
+    }
+
+    [data-od-id="home-entry-grid"] .note {
+      display: block;
+      margin-top: auto;
+    }
+
+    [data-od-id="home-summary-grid"] {
+      align-items: stretch;
+    }
+
+    [data-od-id="home-summary-grid"] .summary-card {
+      min-height: 168px;
+      align-content: start;
+    }
+
+    @media (min-width: 1100px) {
+      [data-od-id="app-home-shell"] {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        column-gap: clamp(24px, 2.4vw, 32px);
+        row-gap: 24px;
+        align-items: stretch;
+      }
+
+      [data-od-id="app-home-shell"] > .section-stack {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: var(--space-6);
+        min-height: 100%;
+      }
+
+      [data-od-id="app-home-shell"] > aside {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: var(--space-6);
+        align-content: start;
+        min-height: 100%;
+      }
+
+      [data-od-id="home-summary-grid"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-content: start;
+        grid-auto-rows: minmax(168px, 1fr);
+      }
+
+      [data-od-id="home-safety-banner"] {
+        align-content: start;
+        min-height: 246px;
+      }
+
+      [data-od-id="home-safety-banner"],
+      [data-od-id="home-next-step"] {
+        padding: var(--space-6);
+      }
+
+      [data-od-id="home-next-step"] {
+        min-height: 168px;
+      }
+
+      [data-od-id="home-entry-grid"] > .entry-card:nth-child(5) {
+        grid-column: 1 / -1;
+        min-height: 168px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="page-shell">
@@ -16,11 +126,10 @@
         </div>
         <button class="btn btn-secondary mobile-nav-toggle" type="button" data-nav-toggle>選單</button>
         <nav class="topnav-links" data-nav-links>
-          <a href="landing.html">產品首頁</a>
           <a href="recording.html">對話錄音</a>
           <a href="ledger.html">對話對帳單</a>
           <a href="checkout.html">結帳</a>
-          <a href="index.html">原型入口</a>
+          <a href="settings.html">設定</a>
         </nav>
         <div class="nav-actions">
           <span class="pill neutral-pill">本機工作區</span>
@@ -45,51 +154,61 @@
           <section class="entry-grid" data-od-id="home-entry-grid">
             <a class="entry-card" href="recording.html">
               <div class="entry-head">
-                <div>
-                  <div class="entry-title">對話錄音</div>
+                <div class="entry-copy">
+                  <div class="entry-title-row">
+                    <div class="entry-title">對話錄音</div>
+                    <div class="num-badge">01</div>
+                  </div>
                   <div class="entry-desc">開始錄音、暫停、恢復、停止，並在過程中標記關鍵時刻。</div>
                 </div>
-                <div class="num-badge">01</div>
               </div>
               <span class="note">本輪已完成互動示意</span>
             </a>
             <a class="entry-card" href="image-new.html">
               <div class="entry-head">
-                <div>
-                  <div class="entry-title">新增圖片紀錄</div>
+                <div class="entry-copy">
+                  <div class="entry-title-row">
+                    <div class="entry-title">新增圖片紀錄</div>
+                    <div class="num-badge">02</div>
+                  </div>
                   <div class="entry-desc">上傳截圖或照片，直接套用詳細標籤與選填說明。</div>
                 </div>
-                <div class="num-badge">02</div>
               </div>
               <span class="note">已接進同一份本機資料結構</span>
             </a>
             <a class="entry-card" href="ledger.html">
               <div class="entry-head">
-                <div>
-                  <div class="entry-title">對話台帳</div>
+                <div class="entry-copy">
+                  <div class="entry-title-row">
+                    <div class="entry-title">對話台帳</div>
+                    <div class="num-badge">03</div>
+                  </div>
                   <div class="entry-desc">用日曆選日期，再進入當天音檔與圖片紀錄，逐筆補標。</div>
                 </div>
-                <div class="num-badge">03</div>
               </div>
               <span class="note">已補成可走通的日曆與日期明細骨架</span>
             </a>
             <a class="entry-card" href="checkout.html">
               <div class="entry-head">
-                <div>
-                  <div class="entry-title">結帳</div>
+                <div class="entry-copy">
+                  <div class="entry-title-row">
+                    <div class="entry-title">結帳</div>
+                    <div class="num-badge">04</div>
+                  </div>
                   <div class="entry-desc">選日期範圍、檢查總表、切換收據摘要與正式報告預覽。</div>
                 </div>
-                <div class="num-badge">04</div>
               </div>
               <span class="note">本輪已完成高擬真預覽</span>
             </a>
             <a class="entry-card" href="settings.html">
               <div class="entry-head">
-                <div>
-                  <div class="entry-title">設定</div>
+                <div class="entry-copy">
+                  <div class="entry-title-row">
+                    <div class="entry-title">設定</div>
+                    <div class="num-badge">05</div>
+                  </div>
                   <div class="entry-desc">管理使用者自建標籤、價格與啟用狀態，供台帳與結帳引用。</div>
                 </div>
-                <div class="num-badge">05</div>
               </div>
               <span class="note">標籤沿用使用者自建資料，不提供系統預設價目表</span>
             </a>

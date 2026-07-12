@@ -5,6 +5,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Swear Word Cash Register · 對話對帳單</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    [data-day-summary] {
+      align-items: stretch;
+    }
+
+    [data-day-summary] .summary-card {
+      min-height: 140px;
+      height: 100%;
+      align-content: start;
+    }
+
+    @media (min-width: 1100px) {
+      [data-od-id="ledger-shell"] {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        column-gap: clamp(24px, 2.4vw, 32px);
+        row-gap: 24px;
+        grid-template-areas:
+          "audio images"
+          "markers warnings"
+          "labels ."
+          "details .";
+        align-items: start;
+      }
+
+      [data-od-id="ledger-shell"] > .section-stack,
+      [data-od-id="ledger-shell"] > aside {
+        display: contents;
+      }
+
+      [data-od-id="ledger-audio-records"] {
+        grid-area: audio;
+      }
+
+      [data-od-id="ledger-marker-navigation"] {
+        grid-area: markers;
+      }
+
+      [data-od-id="ledger-label-buttons"] {
+        grid-area: labels;
+      }
+
+      [data-od-id="ledger-detail-records"] {
+        grid-area: details;
+      }
+
+      [data-od-id="ledger-image-records"] {
+        grid-area: images;
+      }
+
+      [data-od-id="ledger-storage-warning"] {
+        grid-area: warnings;
+      }
+
+      [data-od-id="ledger-image-records"],
+      [data-od-id="ledger-storage-warning"] {
+        padding: var(--space-6);
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="page-shell">
@@ -51,9 +110,9 @@
 
       <section class="summary-grid" data-day-summary></section>
 
-      <section class="app-shell">
+      <section class="app-shell" data-od-id="ledger-shell">
         <div class="section-stack">
-          <section class="surface-card panel-pad">
+          <section class="surface-card panel-pad" data-od-id="ledger-audio-records">
             <div class="section-stack">
               <div class="record-head">
                 <div>
@@ -66,7 +125,7 @@
             </div>
           </section>
 
-          <section class="surface-card panel-pad">
+          <section class="surface-card panel-pad" data-od-id="ledger-marker-navigation">
             <div class="section-stack">
               <div class="record-head">
                 <div>
@@ -83,14 +142,14 @@
             </div>
           </section>
 
-          <section class="surface-card panel-pad">
+          <section class="surface-card panel-pad" data-od-id="ledger-label-buttons">
             <div class="section-stack">
               <div class="entry-title">細部標籤按鈕</div>
               <div class="price-grid label-grid" data-ledger-labels></div>
             </div>
           </section>
 
-          <section class="surface-card panel-pad">
+          <section class="surface-card panel-pad" data-od-id="ledger-detail-records">
             <div class="section-stack">
               <div class="entry-title">細部紀錄列表</div>
               <div class="detail-list" data-ledger-detail-list></div>
@@ -99,14 +158,14 @@
         </div>
 
         <aside class="section-stack">
-          <section class="surface-card panel-pad">
+          <section class="surface-card panel-pad" data-od-id="ledger-image-records">
             <div class="section-stack">
               <div class="entry-title">影像紀錄</div>
               <div class="section-stack" data-ledger-image-list></div>
             </div>
           </section>
 
-          <div class="safety-banner">
+          <div class="safety-banner" data-od-id="ledger-storage-warning">
             <strong class="entry-title">本機資料提醒</strong>
             <div class="warning-list">
               <span>音檔或影像就算遺失，既有標籤與備註仍應保留可讀。</span>

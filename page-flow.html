@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Swear Word Cash Register · 頁面流程關係圖</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .flow-shell,
+    .flow-strip,
+    .flow-grid,
+    .flow-lanes,
+    .flow-lane,
+    .flow-node-stack,
+    .flow-summary,
+    .flow-note-grid {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .flow-summary {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .flow-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      background: color-mix(in oklab, var(--surface) 82%, var(--bg));
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.04em;
+    }
+
+    .flow-strip {
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: center;
+    }
+
+    .flow-arrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 52px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: var(--text-lg);
+      font-weight: 700;
+    }
+
+    .flow-grid {
+      grid-template-columns: 1.1fr minmax(280px, 0.9fr);
+      align-items: start;
+    }
+
+    .flow-node {
+      display: grid;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--elev-raised);
+    }
+
+    .flow-node.is-key {
+      border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+      background: color-mix(in oklab, var(--accent) 7%, var(--surface));
+    }
+
+    .flow-node.is-output {
+      border-color: color-mix(in oklab, var(--success) 30%, var(--border));
+      background: color-mix(in oklab, var(--success) 8%, var(--surface));
+    }
+
+    .flow-node.is-warning {
+      border-color: color-mix(in oklab, var(--warn) 26%, var(--border));
+      background: color-mix(in oklab, var(--warn) 7%, var(--surface));
+    }
+
+    .flow-node-head {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+
+    .flow-node-title {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--fg-2);
+    }
+
+    .flow-node-file {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.04em;
+    }
+
+    .flow-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .flow-links a {
+      color: var(--accent);
+      font-size: var(--text-sm);
+      font-weight: 600;
+    }
+
+    .flow-links a:hover {
+      color: var(--accent-hover);
+    }
+
+    .flow-lane {
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: stretch;
+    }
+
+    .flow-connector {
+      display: grid;
+      place-items: center;
+      min-width: 44px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      letter-spacing: 0.04em;
+    }
+
+    .flow-connector.is-soft {
+      color: var(--muted);
+    }
+
+    .flow-note-grid {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .flow-callout {
+      display: grid;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: color-mix(in oklab, var(--bg) 84%, var(--surface));
+    }
+
+    .flow-list {
+      display: grid;
+      gap: var(--space-2);
+      color: var(--muted);
+      font-size: var(--text-sm);
+    }
+
+    .flow-step {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+
+    .flow-step strong {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      flex: none;
+    }
+
+    @media (max-width: 1023px) {
+      .flow-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .flow-strip,
+      .flow-lane {
+        grid-template-columns: 1fr;
+      }
+
+      .flow-arrow,
+      .flow-connector {
+        min-height: 24px;
+        min-width: 0;
+        transform: rotate(90deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topnav" data-od-id="topnav">
+      <div class="topnav-inner">
+        <div class="brand-lockup">
+          <div class="brand-mark">流程</div>
+          <div class="brand-name">Swear Word Cash Register</div>
+        </div>
+        <button class="btn btn-secondary mobile-nav-toggle" type="button" data-nav-toggle>選單</button>
+        <nav class="topnav-links" data-nav-links>
+          <a href="index.html">原型入口</a>
+          <a href="app-home.html">工作區首頁</a>
+          <a href="recording.html">錄音</a>
+          <a href="ledger.html">對帳單</a>
+          <a href="checkout.html">結帳</a>
+        </nav>
+        <div class="nav-actions">
+          <span class="pill neutral-pill">頁面關係總覽</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout section-stack flow-shell" data-od-id="page-flow-shell">
+      <section class="surface-card panel-pad" data-od-id="flow-hero">
+        <div class="section-stack">
+          <div class="app-title-row">
+            <div>
+              <p class="eyebrow">頁面流程關係圖</p>
+              <h1 class="app-title">先記一句話：設定頁提供標籤，錄音與圖片產生紀錄，台帳負責回看整理，結帳只吃正式細部標籤。</h1>
+            </div>
+            <span class="pill">先把腦中的圖排直</span>
+          </div>
+          <p class="app-subtitle">你現在會覺得不直覺，主要是因為「頁面入口」、「資料來源」、「整理頁」和「輸出頁」混在一起看。這一頁把它拆成四層，先看頁面彼此的去向，再看每頁到底在做什麼。</p>
+
+          <div class="flow-summary" data-od-id="flow-summary">
+            <article class="stat-card">
+              <span class="kpi-label">入口頁</span>
+              <strong class="mini-title">`index.html`、`landing.html`、`app-home.html`</strong>
+              <span class="stat-note">只負責導覽與理解產品，不直接產生可結帳資料。</span>
+            </article>
+            <article class="stat-card">
+              <span class="kpi-label">資料建立頁</span>
+              <strong class="mini-title">`recording.html`、`image-new.html`、`settings.html`</strong>
+              <span class="stat-note">標籤在設定頁建立，音訊與影像在各自流程頁建立。</span>
+            </article>
+            <article class="stat-card">
+              <span class="kpi-label">整理 / 輸出頁</span>
+              <strong class="mini-title">`ledger.html`、`checkout.html`</strong>
+              <span class="stat-note">台帳負責回看，結帳負責統計與雙報表預覽。</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="flow-strip" data-od-id="flow-strip">
+        <article class="flow-node">
+          <div class="flow-node-head">
+            <div>
+              <div class="flow-node-file">入口 01</div>
+              <div class="flow-node-title">產品理解</div>
+            </div>
+            <span class="flow-chip">說明層</span>
+          </div>
+          <div class="flow-links">
+            <a href="landing.html">landing.html</a>
+            <a href="index.html">index.html</a>
+          </div>
+          <div class="entry-desc">先理解產品定位、原型範圍與七個核心畫面。</div>
+        </article>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+        <article class="flow-node is-key">
+          <div class="flow-node-head">
+            <div>
+              <div class="flow-node-file">入口 02</div>
+              <div class="flow-node-title">五大入口首頁</div>
+            </div>
+            <span class="flow-chip">工作區層</span>
+          </div>
+          <div class="flow-links">
+            <a href="app-home.html">app-home.html</a>
+          </div>
+          <div class="entry-desc">真正的工作起點。從這裡分流到錄音、圖片、台帳、結帳與設定。</div>
+        </article>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+        <article class="flow-node is-output">
+          <div class="flow-node-head">
+            <div>
+              <div class="flow-node-file">最終目的</div>
+              <div class="flow-node-title">整理成可輸出的紀錄</div>
+            </div>
+            <span class="flow-chip">輸出層</span>
+          </div>
+          <div class="entry-desc">不是每一頁都會產生結帳資料；只有正式細部標籤才會往下走進 `checkout.html`。</div>
+        </article>
+      </section>
+
+      <section class="flow-grid" data-od-id="flow-main-grid">
+        <div class="surface-card panel-pad">
+          <div class="section-stack">
+            <div>
+              <p class="eyebrow">頁面關係</p>
+              <h2 class="display-sub">把頁面分成四條線來看，就不會再糾結誰是入口、誰是資料來源。</h2>
+            </div>
+
+            <div class="flow-lanes">
+              <div class="flow-lane" data-od-id="lane-settings">
+                <article class="flow-node is-warning">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">設定來源</div>
+                      <div class="flow-node-title">`settings.html`</div>
+                    </div>
+                    <span class="flow-chip">Price Labels</span>
+                  </div>
+                  <div class="entry-desc">建立 / 編輯價格標籤。這裡不建立事件紀錄，只建立「可被套用的標籤清單」。</div>
+                </article>
+                <div class="flow-connector" aria-hidden="true">供應標籤 →</div>
+                <article class="flow-node">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">音訊流程</div>
+                      <div class="flow-node-title">`recording.html`</div>
+                    </div>
+                    <span class="flow-chip">Audio</span>
+                  </div>
+                  <div class="entry-desc">先錄音 / 上傳音檔，再標記時間點，最後套用詳細標籤。</div>
+                </article>
+                <div class="flow-connector is-soft" aria-hidden="true">也供應 →</div>
+                <article class="flow-node">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">影像流程</div>
+                      <div class="flow-node-title">`image-new.html`</div>
+                    </div>
+                    <span class="flow-chip">Image</span>
+                  </div>
+                  <div class="entry-desc">上傳圖片後直接套用詳細標籤，不經過時間標記這一步。</div>
+                </article>
+              </div>
+
+              <div class="flow-lane" data-od-id="lane-ledger">
+                <article class="flow-node">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">音訊結果</div>
+                      <div class="flow-node-title">AudioRecord + 初步標記</div>
+                    </div>
+                    <span class="flow-chip">定位用</span>
+                  </div>
+                  <div class="entry-desc">初步標記只負責「回到那一刻」，本身不直接計價。</div>
+                </article>
+                <div class="flow-connector" aria-hidden="true">回看 / 補標 →</div>
+                <article class="flow-node is-key">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">整理中心</div>
+                      <div class="flow-node-title">`ledger.html`</div>
+                    </div>
+                    <span class="flow-chip">Calendar Hub</span>
+                  </div>
+                  <div class="entry-desc">把音訊、影像與正式細部標籤按日期重新整理，讓你回頭補標與檢查。</div>
+                </article>
+                <div class="flow-connector" aria-hidden="true">送去結帳 →</div>
+                <article class="flow-node is-output">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">輸出頁</div>
+                      <div class="flow-node-title">`checkout.html`</div>
+                    </div>
+                    <span class="flow-chip">Receipt + Report</span>
+                  </div>
+                  <div class="entry-desc">只讀正式細部標籤，做收據式摘要與正式明細報告預覽。</div>
+                </article>
+              </div>
+
+              <div class="flow-lane" data-od-id="lane-image-direct">
+                <article class="flow-node">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">影像結果</div>
+                      <div class="flow-node-title">ImageRecord + 正式細部標籤</div>
+                    </div>
+                    <span class="flow-chip">直接入帳</span>
+                  </div>
+                  <div class="entry-desc">影像頁一建立就直接產生正式細部標籤，所以它會同時出現在台帳與結帳。</div>
+                </article>
+                <div class="flow-connector is-soft" aria-hidden="true">同步顯示 →</div>
+                <article class="flow-node">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">日期整理</div>
+                      <div class="flow-node-title">`ledger.html`</div>
+                    </div>
+                    <span class="flow-chip">Review</span>
+                  </div>
+                  <div class="entry-desc">台帳會把影像紀錄併進當日檢視，但不改變它已經是正式標籤這件事。</div>
+                </article>
+                <div class="flow-connector is-soft" aria-hidden="true">同時可進 →</div>
+                <article class="flow-node">
+                  <div class="flow-node-head">
+                    <div>
+                      <div class="flow-node-file">匯總統計</div>
+                      <div class="flow-node-title">`checkout.html`</div>
+                    </div>
+                    <span class="flow-chip">Output</span>
+                  </div>
+                  <div class="entry-desc">只要是正式細部標籤，不管來源是音訊還是影像，都會進結帳統計。</div>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="section-stack">
+          <section class="surface-card panel-pad" data-od-id="flow-mental-model">
+            <div class="section-stack">
+              <div>
+                <div class="entry-title">最簡單的心智模型</div>
+                <div class="entry-desc">你可以把目前原型當成三層，不要再把七頁平鋪成同一層看。</div>
+              </div>
+              <div class="flow-list">
+                <div class="flow-step"><strong>1</strong><span><b>入口層</b>：`landing.html`、`index.html`、`app-home.html` 用來理解與進入。</span></div>
+                <div class="flow-step"><strong>2</strong><span><b>建立層</b>：`settings.html` 建標籤；`recording.html` / `image-new.html` 建事件資料。</span></div>
+                <div class="flow-step"><strong>3</strong><span><b>整理輸出層</b>：`ledger.html` 回看；`checkout.html` 匯總與輸出。</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="safety-banner" data-od-id="flow-confusion-points">
+            <strong class="entry-title">目前最容易混亂的三個點</strong>
+            <div class="warning-list">
+              <span>`settings.html` 不是資料總表，它只是標籤來源頁。</span>
+              <span>`ledger.html` 不是唯一的建立入口，它比較像回看與補標中心。</span>
+              <span>`checkout.html` 不看所有資料，它只看正式細部標籤。</span>
+            </div>
+          </section>
+
+          <section class="surface-card panel-pad" data-od-id="flow-page-links">
+            <div class="section-stack">
+              <div>
+                <div class="entry-title">直接跳去對照頁面</div>
+                <div class="entry-desc">如果你想一邊看圖一邊對照實頁，可以直接從這裡跳。</div>
+              </div>
+              <div class="flow-links">
+                <a href="landing.html">產品首頁</a>
+                <a href="app-home.html">五大入口</a>
+                <a href="settings.html">設定</a>
+                <a href="recording.html">錄音流程</a>
+                <a href="image-new.html">新增影像</a>
+                <a href="ledger.html">對話對帳單</a>
+                <a href="checkout.html">結帳匯出</a>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="flow-note-grid" data-od-id="flow-common-paths">
+        <article class="flow-callout">
+          <p class="eyebrow">常用路徑 A</p>
+          <div class="entry-title">錄音整理流</div>
+          <div class="flow-list">
+            <span>`app-home.html` → `recording.html` → 建立初步標記 → 套用詳細標籤 → `ledger.html` 回看 → `checkout.html` 結帳</span>
+          </div>
+        </article>
+        <article class="flow-callout">
+          <p class="eyebrow">常用路徑 B</p>
+          <div class="entry-title">圖片整理流</div>
+          <div class="flow-list">
+            <span>`app-home.html` → `image-new.html` → 直接建立正式細部標籤 → `ledger.html` 檢查 → `checkout.html` 結帳</span>
+          </div>
+        </article>
+        <article class="flow-callout">
+          <p class="eyebrow">常用路徑 C</p>
+          <div class="entry-title">先建標籤再工作</div>
+          <div class="flow-list">
+            <span>`app-home.html` → `settings.html` 建立價格標籤 → 回 `recording.html` 或 `image-new.html` 開始記錄</span>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>如果下一輪要更直覺，最值得先收斂的是：把 `ledger.html` 定位成「整理中心」，不要再讓它同時看起來像另一個建立入口。</span>
+        <span data-toast hidden></span>
+      </div>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
