@@ -1,0 +1,21 @@
+{
+  "name": "髒話收銀機｜本機蒐證管理工具",
+  "short_name": "髒話收銀機",
+  "description": "錄音、照片、對帳與備份整合的本機優先蒐證工具。",
+  "lang": "zh-Hant-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3eedb",
+  "theme_color": "#171916",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

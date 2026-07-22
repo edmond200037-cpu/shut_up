@@ -15,7 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,22 +27,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: 建置靜態網站
-        run: npx next build
-        env:
-          GITHUB_PAGES: "true"
+      - name: 程式檢查與靜態建置
+        run: npm run check
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: out
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
+          path: dist
       - name: 發布
         id: deployment
         uses: actions/deploy-pages@v4
