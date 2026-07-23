@@ -8,6 +8,15 @@ export type View =
 
 export type EvidenceKind = "audio" | "photo";
 
+export type CategoryBillingMode = "per-occurrence" | "once-per-evidence";
+
+export type CategoryDefinition = {
+  id: string;
+  name: string;
+  unitPrice: number;
+  billingMode: CategoryBillingMode;
+};
+
 export type LegacyMarker = {
   at: number;
   tag?: string;
@@ -23,7 +32,9 @@ export type AudioMarker = {
   timestamp: number;
   /** 點擊標籤時播放器開始預覽的秒數。 */
   previewStart: number;
-  category: EvidenceCategory | "";
+  categoryIds: string[];
+  /** 舊版單一分類名稱，僅供資料遷移。 */
+  category?: string;
 };
 
 export type EvidenceRecord = {
@@ -35,7 +46,9 @@ export type EvidenceRecord = {
   /** 紀錄加入資料庫的時間。 */
   createdAt: string;
   duration?: number;
+  /** 舊版自由文字標籤，僅供資料遷移與備份相容。 */
   tags: string[];
+  categoryIds: string[];
   markers?: AudioMarker[];
   notes: string;
   amount?: number;
@@ -52,8 +65,10 @@ export type BackupRecord = Omit<EvidenceRecord, "blob"> & {
 
 export type BackupManifest = {
   format: "shut-up-evidence-backup";
-  version: 3;
+  version: 4;
   exportedAt: string;
-  quickTags: string[];
+  categories: CategoryDefinition[];
+  /** 舊版備份欄位，讀取後會轉成 categories。 */
+  quickTags?: string[];
   records: BackupRecord[];
 };

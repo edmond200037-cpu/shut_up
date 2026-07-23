@@ -21,15 +21,15 @@ test("build includes PWA offline files and application bundle", async () => {
   assert.match(worker, /request\.mode === "navigate"/);
 });
 
-test("build includes audio marker reconciliation workflow", async () => {
+test("build includes shared category and audio marker workflow", async () => {
   const assetDir = new URL("../dist/assets/", import.meta.url);
   const files = await readdir(assetDir);
   const scriptName = files.find((file) => file.endsWith(".js"));
   assert.ok(scriptName, "expected a JavaScript application bundle");
   const script = await readFile(new URL(scriptName, assetDir), "utf8");
   assert.match(script, /快速標籤/);
-  assert.match(script, /已更新為/);
-  for (const category of ["辱罵", "恐嚇", "霸凌", "歧視", "性騷擾", "其他"]) {
-    assert.match(script, new RegExp(category));
-  }
+  assert.match(script, /分類標籤/);
+  assert.match(script, /每次出現/);
+  assert.match(script, /每筆證據一次/);
+  assert.match(script, /結帳台/);
 });

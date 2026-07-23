@@ -1,20 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { DEFAULT_QUICK_TAGS, NAV_ITEMS } from "./constants";
+import { DEFAULT_CATEGORIES, NAV_ITEMS } from "./constants";
 import { buildBackup, parseBackup } from "./lib/backup";
 import {
   clearAllData,
+  deleteCategory,
   deleteRecord,
   getAllRecords,
-  getQuickTags,
-  putQuickTags,
+  getCategories,
+  putCategories,
   putRecord,
 } from "./lib/db";
 import { downloadBlob, fileOccurredAt, sha256 } from "./lib/files";
 import { formatDate, formatDuration, makeId } from "./lib/format";
-import type { EvidenceRecord, View } from "./types";
+import type { CategoryDefinition, EvidenceRecord, View } from "./types";
+import { calculateCategoryTotals, calculateLegacyAdjustments, categoryLabels } from "./lib/categories";
 import { MediaPreview } from "./components/MediaPreview";
 import { PageHeader } from "./components/PageHeader";
-import { QuickTagEditor } from "./components/QuickTagEditor";
+import { CategoryEditor } from "./components/CategoryEditor";
 import { Recorder } from "./components/Recorder";
 import { RecordModal } from "./components/RecordModal";
 import { RecordsTable } from "./components/RecordsTable";
@@ -24,11 +26,13 @@ type InstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-function Receipt({ records, checkout = false }: { records: EvidenceRecord[]; checkout?: boolean }) {
+function Receipt({ records, categories, checkout = false }: { records: EvidenceRecord[]; categories: CategoryDefinition[]; checkout?: boolean }) {
   const audioCount = records.filter((record) => record.kind === "audio").length;
   const photoCount = records.filter((record) => record.kind === "photo").length;
   const totalDuration = records.reduce((total, record) => total + (record.duration || 0), 0);
-  const totalAmount = records.reduce((total, record) => total + (Number(record.amount) || 0), 0);
+  const categoryTotals = calculateCategoryTotals(records, categories);
+  const legacyAdjustments = calculateLegacyAdjustments(records);
+  const totalAmount = categoryTotals.reduce((total, item) => total + item.subtotal, 0) + legacyAdjustments.reduce((total, item) => total + item.amount, 0);
   const today = new Date().toLocaleDateString("zh-TW");
   const todayRecords = records.filter((record) => new Date(record.occurredAt).toLocaleDateString("zh-TW") === today);
 
@@ -40,7 +44,7 @@ function Receipt({ records, checkout = false }: { records: EvidenceRecord[]; che
       <div className="receipt-lines">
         {checkout ? (
           <>
-            <div><span>計價筆數</span><strong>{records.filter((record) => (record.amount || 0) > 0).length}</strong></div>
+            <div><span>分類項目</span><strong>{categoryTotals.length}</strong></div>
             <div><span>錄音</span><strong>{audioCount} 筆</strong></div>
             <div><span>照片</span><strong>{photoCount} 張</strong></div>
           </>
@@ -74,7 +78,7 @@ function Receipt({ records, checkout = false }: { records: EvidenceRecord[]; che
 export default function App() {
   const [view, setView] = useState<View>("dashboard");
   const [records, setRecords] = useState<EvidenceRecord[]>([]);
-  const [quickTags, setQuickTags] = useState(DEFAULT_QUICK_TAGS);
+  const [categories, setCategories] = useState<CategoryDefinition[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const [query, setQuery] = useState("");
@@ -107,10 +111,10 @@ export default function App() {
   }, [updateStorage]);
 
   useEffect(() => {
-    Promise.all([getAllRecords(), getQuickTags()])
-      .then(([savedRecords, savedTags]) => {
+    Promise.all([getAllRecords(), getCategories()])
+      .then(([savedRecords, savedCategories]) => {
         setRecords(savedRecords);
-        setQuickTags(savedTags);
+        setCategories(savedCategories);
       })
       .catch(() => flash("無法讀取本機資料庫，請確認瀏覽器未停用網站儲存。"))
       .finally(() => setLoading(false));
@@ -139,9 +143,9 @@ export default function App() {
     const needle = query.trim().toLocaleLowerCase("zh-TW");
     if (!needle) return records;
     return records.filter((record) =>
-      `${record.title} ${record.notes} ${record.tags.join(" ")}`.toLocaleLowerCase("zh-TW").includes(needle),
+      `${record.title} ${record.notes} ${categoryLabels(record.categoryIds, categories).join(" ")}`.toLocaleLowerCase("zh-TW").includes(needle),
     );
-  }, [query, records]);
+  }, [query, records, categories]);
 
   async function saveRecord(record: EvidenceRecord) {
     await putRecord(record);
@@ -172,6 +176,7 @@ export default function App() {
         occurredAt: fileOccurredAt(file),
         createdAt: new Date().toISOString(),
         tags: [],
+        categoryIds: [],
         markers: [],
         notes: "發生時間先採用檔案可用日期，可在明細中修改。",
         mime: file.type || "image/jpeg",
@@ -186,15 +191,9 @@ export default function App() {
     if (files.length) flash(`已加入 ${files.length} 張照片。`);
   }
 
-  async function updateAmount(record: EvidenceRecord, amount: number) {
-    const next = { ...record, amount: Number.isFinite(amount) ? Math.max(0, amount) : 0 };
-    setRecords((current) => current.map((item) => item.id === record.id ? next : item));
-    await putRecord(next);
-  }
-
   async function exportBackup() {
     if (!records.length && !window.confirm("目前沒有蒐證紀錄，仍要匯出只有設定的備份嗎？")) return;
-    const backup = await buildBackup(records, quickTags);
+    const backup = await buildBackup(records, categories);
     downloadBlob(backup, `髒話收銀機備份-${new Date().toISOString().slice(0, 10)}.zip`);
     flash("完整 ZIP 備份已匯出，請妥善保存。");
   }
@@ -217,7 +216,8 @@ export default function App() {
         });
         restored += 1;
       }
-      await saveQuickTags(manifest.quickTags.slice(0, 8));
+      await putCategories(manifest.categories);
+      setCategories(await getCategories());
       await refresh();
       flash(`已還原 ${restored} 筆紀錄；相同編號會更新，不會重複。`);
     } catch (error) {
@@ -225,11 +225,21 @@ export default function App() {
     }
   }
 
-  async function saveQuickTags(tags: string[]) {
-    const normalized = [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))].slice(0, 8);
-    const value = normalized.length ? normalized : DEFAULT_QUICK_TAGS;
-    await putQuickTags(value);
-    setQuickTags(value);
+  async function saveCategories(next: CategoryDefinition[]) {
+    const normalized = next
+      .filter((category) => category.name.trim())
+      .map((category) => ({ ...category, name: category.name.trim(), unitPrice: Math.max(0, Math.round(category.unitPrice || 0)) }));
+    await putCategories(normalized);
+    setCategories(normalized);
+  }
+
+  async function removeCategory(category: CategoryDefinition) {
+    const affected = records.reduce((total, record) => total + (record.categoryIds.includes(category.id) ? 1 : 0) + (record.markers || []).filter((marker) => marker.categoryIds.includes(category.id)).length, 0);
+    if (affected && !window.confirm(`「${category.name}」已套用在 ${affected} 個位置，刪除後會移除這些分類，確定繼續？`)) return;
+    await deleteCategory(category);
+    setCategories((current) => current.filter((item) => item.id !== category.id));
+    await refresh();
+    flash(`已刪除分類「${category.name}」。`);
   }
 
   async function requestPersistence() {
@@ -251,14 +261,14 @@ export default function App() {
         <PageHeader title="總覽" subtitle="快速記錄、核對與整理今日蒐證資料" />
         <div className="dashboard-grid">
           <Recorder onSave={saveRecord} flash={flash} />
-          <Receipt records={records} />
+          <Receipt records={records} categories={categories} />
         </div>
         <section className="panel recent-panel">
           <div className="section-title">
             <div><p className="eyebrow">RECENT ENTRIES</p><h2>最近紀錄</h2></div>
             <button className="text-button" onClick={() => setView("ledger")}>查看全部 →</button>
           </div>
-          <RecordsTable records={records} limit={6} onOpen={setActiveRecord} />
+          <RecordsTable records={records} categories={categories} limit={6} onOpen={setActiveRecord} />
         </section>
       </>
     );
@@ -271,7 +281,7 @@ export default function App() {
         <Recorder onSave={saveRecord} flash={flash} />
         <section className="panel">
           <div className="section-title"><h2>錄音紀錄</h2>{searchInput("搜尋標題、標籤或備註")}</div>
-          <RecordsTable records={filtered.filter((record) => record.kind === "audio")} onOpen={setActiveRecord} />
+          <RecordsTable records={filtered.filter((record) => record.kind === "audio")} categories={categories} onOpen={setActiveRecord} />
         </section>
       </>
     );
@@ -314,31 +324,42 @@ export default function App() {
         <PageHeader title="對話對帳單" subtitle="逐筆補充內容、分類標籤與備註，建立可核對的時間序列" />
         <section className="panel">
           <div className="section-title"><div><p className="eyebrow">EVIDENCE LEDGER</p><h2>全部蒐證紀錄</h2></div>{searchInput("搜尋全部紀錄")}</div>
-          <RecordsTable records={filtered} onOpen={setActiveRecord} />
+          <RecordsTable records={filtered} categories={categories} onOpen={setActiveRecord} />
         </section>
       </>
     );
   }
 
   function renderCheckoutPage() {
+    const totals = calculateCategoryTotals(records, categories);
+    const legacyAdjustments = calculateLegacyAdjustments(records);
+    const categoryTotal = totals.reduce((total, item) => total + item.subtotal, 0);
+    const legacyTotal = legacyAdjustments.reduce((total, item) => total + item.amount, 0);
     return (
       <>
-        <PageHeader title="結帳" subtitle="由你自行輸入每筆紀錄的計價金額；系統不設定預設價格" />
+        <PageHeader title="結帳台" subtitle="依分類標籤與計價規則自動統計蒐證資料" />
         <div className="checkout-layout">
           <section className="panel">
-            <div className="section-title"><div><p className="eyebrow">LINE ITEMS</p><h2>計價項目</h2></div><span>{records.length} 筆</span></div>
+            <div className="section-title"><div><p className="eyebrow">CATEGORY TOTALS</p><h2>分類小計</h2></div><span>{records.length} 筆證據</span></div>
             <div className="checkout-list">
-              {records.map((record, index) => (
-                <div className="checkout-row" key={record.id}>
-                  <span className="mono">{String(index + 1).padStart(3, "0")}</span>
-                  <div><strong>{record.title}</strong><small>{formatDate(record.occurredAt)} · {record.tags.join("、") || "未分類"}</small></div>
-                  <label>NT$<input type="number" min="0" step="1" value={record.amount || ""} placeholder="0" onChange={(event) => updateAmount(record, Number(event.target.value))} /></label>
+              {totals.map((item) => (
+                <div className="checkout-category-row" key={item.id}>
+                  <div><strong>{item.name}</strong><small>{item.count} 次 · {item.billingMode === "per-occurrence" ? "每次出現" : "每筆證據一次"}</small></div>
+                  <span className="mono">NT$ {item.unitPrice.toLocaleString("zh-TW")}</span>
+                  <strong className="checkout-subtotal">NT$ {item.subtotal.toLocaleString("zh-TW")}</strong>
                 </div>
               ))}
+              {legacyAdjustments.length > 0 && (
+                <>
+                  <div className="checkout-divider">舊版調整項</div>
+                  {legacyAdjustments.map((item) => <div className="checkout-category-row legacy-row" key={item.id}><div><strong>{item.title}</strong><small>升級前手動金額</small></div><span>1 次</span><strong className="checkout-subtotal">NT$ {item.amount.toLocaleString("zh-TW")}</strong></div>)}
+                </>
+              )}
             </div>
-            {!records.length && <div className="empty-state">尚無可結帳紀錄</div>}
+            {!totals.length && !legacyAdjustments.length && <div className="empty-state">尚無已分類或舊版計價紀錄</div>}
+            <div className="checkout-grand-total"><span>總計</span><strong>NT$ {(categoryTotal + legacyTotal).toLocaleString("zh-TW")}</strong></div>
           </section>
-          <Receipt records={records} checkout />
+          <Receipt records={records} categories={categories} checkout />
         </div>
       </>
     );
@@ -347,11 +368,11 @@ export default function App() {
   function renderSettingsPage() {
     return (
       <>
-        <PageHeader title="設定" subtitle="管理照片標籤、本機資料、備份與裝置儲存狀態" />
+        <PageHeader title="設定" subtitle="管理共用分類、單價、計價規則、備份與裝置儲存狀態" />
         <div className="settings-grid">
           <section className="panel setting-card">
             <span className="setting-icon">TAG</span>
-            <div><h2>照片標籤</h2><p>最多 8 個，可自行新增、移除與調整順序；編輯照片紀錄時會使用這組標籤。</p><QuickTagEditor tags={quickTags} onChange={saveQuickTags} flash={flash} /></div>
+            <div><h2>分類標籤</h2><p>照片、錄音與其他證據共用同一套分類；每個分類可設定單價與重複計價方式。</p><CategoryEditor categories={categories} onChange={saveCategories} onDelete={removeCategory} flash={flash} /></div>
           </section>
           <section className="panel setting-card">
             <span className="setting-icon">ZIP</span>
@@ -367,7 +388,7 @@ export default function App() {
           </section>
           <section className="panel setting-card danger">
             <span className="setting-icon">!</span>
-            <div><h2>清除全部資料</h2><p>永久移除這個瀏覽器中的全部錄音、照片、標籤與對帳紀錄。</p><button className="danger-button" onClick={async () => { if (window.confirm("確定清除全部資料？建議先匯出 ZIP 備份。")) { await clearAllData(); setQuickTags(DEFAULT_QUICK_TAGS); await refresh(); flash("全部本機資料已清除。"); } }}>清除本機資料</button></div>
+            <div><h2>清除全部資料</h2><p>永久移除這個瀏覽器中的全部錄音、照片、分類與對帳紀錄。</p><button className="danger-button" onClick={async () => { if (window.confirm("確定清除全部資料？建議先匯出 ZIP 備份。")) { await clearAllData(); setCategories([]); await refresh(); flash("全部本機資料已清除。"); } }}>清除本機資料</button></div>
           </section>
         </div>
         <section className="privacy-note"><strong>隱私設計</strong><span>網站不會把蒐證內容送往 GitHub。資料以網站來源為範圍保存在目前瀏覽器；更換裝置、瀏覽器或網址後不會自動出現。</span></section>
@@ -406,7 +427,7 @@ export default function App() {
       {activeRecord && (
         <RecordModal
           record={activeRecord}
-          quickTags={quickTags}
+          categories={categories}
           onClose={() => setActiveRecord(null)}
           onSave={saveModalRecord}
           onUpdate={async (record) => {

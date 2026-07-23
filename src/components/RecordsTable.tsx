@@ -1,12 +1,15 @@
-import type { EvidenceRecord } from "../types";
+import type { CategoryDefinition, EvidenceRecord } from "../types";
 import { formatDate, formatDuration } from "../lib/format";
+import { categoryLabels } from "../lib/categories";
 
 export function RecordsTable({
   records,
+  categories,
   onOpen,
   limit,
 }: {
   records: EvidenceRecord[];
+  categories: CategoryDefinition[];
   onOpen: (record: EvidenceRecord) => void;
   limit?: number;
 }) {
@@ -47,8 +50,8 @@ export function RecordsTable({
                 {record.kind === "audio" ? formatDuration(record.duration) : "1 張"}
               </td>
               <td>
-                {record.tags.length ? (
-                  record.tags.slice(0, 2).map((tag) => (
+                {categoryLabels(record.categoryIds, categories).length ? (
+                  categoryLabels(record.categoryIds, categories).slice(0, 2).map((tag) => (
                     <span className="mini-tag" key={tag}>{tag}</span>
                   ))
                 ) : (

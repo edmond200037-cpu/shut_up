@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { EVIDENCE_CATEGORIES, type EvidenceCategory, type EvidenceRecord } from "../types";
+import type { CategoryDefinition, EvidenceRecord } from "../types";
 import { downloadBlob } from "../lib/files";
 import { shortId, toLocalInputValue } from "../lib/format";
-import { markerName } from "../lib/audioMarkers";
 import { MediaPreview } from "./MediaPreview";
 import { AudioEvidencePlayer, type AudioEvidencePlayerHandle } from "./AudioEvidencePlayer";
+import { CategorySelector } from "./CategorySelector";
+import { categoryColor, categoryName } from "../lib/categories";
 
 export function RecordModal({
   record,
-  quickTags,
+  categories,
   onClose,
   onSave,
   onUpdate,
@@ -16,7 +17,7 @@ export function RecordModal({
   flash,
 }: {
   record: EvidenceRecord;
-  quickTags: string[];
+  categories: CategoryDefinition[];
   onClose: () => void;
   onSave: (record: EvidenceRecord) => Promise<void>;
   onUpdate: (record: EvidenceRecord) => Promise<void>;
@@ -35,26 +36,31 @@ export function RecordModal({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  function toggleTag(tag: string) {
-    setDraft((current) => ({
-      ...current,
-      tags: current.tags.includes(tag)
-        ? current.tags.filter((item) => item !== tag)
-        : [...current.tags, tag],
-    }));
-  }
+  useEffect(() => {
+    setDraft(record);
+    setSelectedMarkerId(null);
+  }, [record.id]);
 
-  async function classifySelected(category: EvidenceCategory) {
-    if (!selectedMarkerId) return;
-    const markers = (draft.markers || []).map((marker) => marker.id === selectedMarkerId ? { ...marker, category } : marker);
-    const next = {
-      ...draft,
-      markers,
-      tags: [...new Set(markers.map((marker) => marker.category).filter(Boolean))],
-    };
+  async function updateCategories(categoryIds: string[]) {
+    const markers = selectedMarkerId
+      ? (draft.markers || []).map((marker) => marker.id === selectedMarkerId ? { ...marker, categoryIds } : marker)
+      : draft.markers;
+    const next = { ...draft, categoryIds: selectedMarkerId ? draft.categoryIds : categoryIds, markers };
     setDraft(next);
     await onUpdate(next);
-    flash(`✓ 已更新為「${category}」`);
+    flash("✓ 分類已更新");
+  }
+
+  function markerLabel(index: number) {
+    return `快速${["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"][index] || index + 1}`;
+  }
+
+  function categoryBadges(ids: string[]) {
+    return ids.map((id) => (
+      <span className={`category-badge category-${categoryColor(id, categories)}`} key={id}>
+        {categoryName(id, categories)}
+      </span>
+    ));
   }
 
   const audioReconciliation = draft.kind === "audio" ? (
@@ -62,6 +68,9 @@ export function RecordModal({
       <section className="marker-strip-section">
         <h3>快速標籤</h3>
         <div className="marker-strip" role="list">
+          <button type="button" role="listitem" className={!selectedMarkerId ? "active" : ""} onClick={() => setSelectedMarkerId(null)}>
+            <span>整筆錄音</span>
+          </button>
           {(draft.markers || []).map((marker, index) => (
             <button
               type="button"
@@ -70,28 +79,20 @@ export function RecordModal({
               className={selectedMarkerId === marker.id ? "active" : ""}
               onClick={() => playerRef.current?.previewMarker(marker.id)}
             >
-              {markerName(marker, index)}
+              <span>{markerLabel(index)}</span>
+              {marker.categoryIds.length > 0 && <span className="marker-classified">已分類</span>}
+              <span className="category-badge-row">{categoryBadges(marker.categoryIds)}</span>
             </button>
           ))}
           {!draft.markers?.length && <span className="muted">這筆錄音沒有快速標籤</span>}
         </div>
       </section>
-      <section className="category-section">
-        <h3>分類</h3>
-        <div className="category-buttons">
-          {EVIDENCE_CATEGORIES.map((category) => (
-            <button
-              type="button"
-              key={category}
-              disabled={!selectedMarkerId}
-              className={draft.markers?.find((marker) => marker.id === selectedMarkerId)?.category === category ? "active" : ""}
-              onClick={() => classifySelected(category)}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      </section>
+      <CategorySelector
+        categories={categories}
+        selectedIds={selectedMarkerId ? draft.markers?.find((marker) => marker.id === selectedMarkerId)?.categoryIds || [] : draft.categoryIds}
+        onChange={(ids) => void updateCategories(ids)}
+        label={selectedMarkerId ? `${markerLabel((draft.markers || []).findIndex((marker) => marker.id === selectedMarkerId))} 分類` : "整筆錄音分類"}
+      />
     </div>
   ) : null;
 
@@ -137,16 +138,7 @@ export function RecordModal({
           <small>匯入檔案時會先採用檔案可用日期；若不正確，請在此手動指定。</small>
         </label>
 
-        {draft.kind !== "audio" && (
-          <fieldset>
-            <legend>分類標籤</legend>
-            <div className="quick-tags">
-              {quickTags.map((tag) => (
-                <button type="button" key={tag} className={draft.tags.includes(tag) ? "active" : ""} onClick={() => toggleTag(tag)}>{tag}</button>
-              ))}
-            </div>
-          </fieldset>
-        )}
+        {draft.kind !== "audio" && <CategorySelector categories={categories} selectedIds={draft.categoryIds} onChange={(ids) => void updateCategories(ids)} label="分類標籤" />}
 
         <label>
           內容與情境說明

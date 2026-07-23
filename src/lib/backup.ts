@@ -1,6 +1,7 @@
 import type { BackupManifest, BackupRecord, EvidenceRecord } from "../types";
-import { DEFAULT_QUICK_TAGS } from "../constants";
 import { safeFileName } from "./format";
+import { legacyCategoryId } from "./db";
+import type { CategoryDefinition } from "../types";
 
 type ZipEntry = { name: string; data: Uint8Array };
 
@@ -105,7 +106,7 @@ export function readStoredZip(buffer: ArrayBuffer) {
   return files;
 }
 
-export async function buildBackup(records: EvidenceRecord[], quickTags: string[]) {
+export async function buildBackup(records: EvidenceRecord[], categories: CategoryDefinition[]) {
   const entries: ZipEntry[] = [];
   const manifestRecords = [];
   for (const record of records) {
@@ -117,9 +118,9 @@ export async function buildBackup(records: EvidenceRecord[], quickTags: string[]
   }
   const manifest: BackupManifest = {
     format: "shut-up-evidence-backup",
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
-    quickTags,
+    categories,
     records: manifestRecords,
   };
   entries.unshift({
@@ -141,6 +142,7 @@ export function parseBackup(buffer: ArrayBuffer) {
     format?: string;
     version?: number;
     exportedAt?: string;
+    categories?: CategoryDefinition[];
     quickTags?: string[];
     records?: RawRecord[];
   };
@@ -150,24 +152,27 @@ export function parseBackup(buffer: ArrayBuffer) {
   if (raw.format === "swear-cashier-backup" && raw.version === 1) {
     const manifest: BackupManifest = {
       format: "shut-up-evidence-backup",
-      version: 3,
+      version: 4,
       exportedAt: raw.exportedAt || new Date().toISOString(),
-      quickTags: DEFAULT_QUICK_TAGS,
+      categories: [],
       records: raw.records.map((record): BackupRecord => ({
         ...record,
         occurredAt: record.occurredAt || record.createdAt,
         fileSize: record.fileSize || 0,
+        categoryIds: [],
       })),
     };
     return { files, manifest };
   }
   if (
     raw.format !== "shut-up-evidence-backup"
-    || ![2, 3].includes(raw.version || 0)
-    || !Array.isArray(raw.quickTags)
+    || ![2, 3, 4].includes(raw.version || 0)
   ) {
     throw new Error("不是相容的髒話收銀機備份");
   }
-  const manifest = { ...raw, version: 3 } as BackupManifest;
+  const categories = Array.isArray(raw.categories)
+    ? raw.categories
+    : (Array.isArray(raw.quickTags) ? raw.quickTags.map((name) => ({ id: legacyCategoryId(name), name, unitPrice: 0, billingMode: "once-per-evidence" as const })) : []);
+  const manifest = { ...raw, version: 4, categories, records: raw.records.map((record) => ({ ...record, categoryIds: record.categoryIds || [] })) } as BackupManifest;
   return { files, manifest };
 }

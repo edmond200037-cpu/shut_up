@@ -183,6 +183,7 @@ export function Recorder({
             createdAt: new Date().toISOString(),
             duration: Math.max(1, Math.round(validatedDuration || activeSecondsRef.current)),
             tags: [],
+            categoryIds: [],
             markers: markerRef.current,
             notes: "",
             mime,
@@ -249,6 +250,7 @@ export function Recorder({
       timestamp,
       previewStart: Math.max(0, timestamp - 10),
       category: "",
+      categoryIds: [],
     };
     markerRef.current = [...markerRef.current, marker];
     setMarkers(markerRef.current);
@@ -265,6 +267,7 @@ export function Recorder({
         occurredAt: fileOccurredAt(file),
         createdAt: new Date().toISOString(),
         tags: [],
+        categoryIds: [],
         markers: [],
         notes: "由本機匯入；發生時間先採用檔案可用日期，可在明細中修改。",
         mime: file.type || "audio/mpeg",
