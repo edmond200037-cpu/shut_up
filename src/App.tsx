@@ -250,7 +250,7 @@ export default function App() {
       <>
         <PageHeader title="總覽" subtitle="快速記錄、核對與整理今日蒐證資料" />
         <div className="dashboard-grid">
-          <Recorder quickTags={quickTags} onSave={saveRecord} flash={flash} />
+          <Recorder onSave={saveRecord} flash={flash} />
           <Receipt records={records} />
         </div>
         <section className="panel recent-panel">
@@ -267,8 +267,8 @@ export default function App() {
   function renderRecordPage() {
     return (
       <>
-        <PageHeader title="對話錄音" subtitle="開始錄音或匯入既有音檔，錄音過程可即時加上時間標記" />
-        <Recorder quickTags={quickTags} onSave={saveRecord} flash={flash} />
+        <PageHeader title="對話錄音" subtitle="開始錄音或匯入既有音檔，錄音過程可即時加上快速時間標籤" />
+        <Recorder onSave={saveRecord} flash={flash} />
         <section className="panel">
           <div className="section-title"><h2>錄音紀錄</h2>{searchInput("搜尋標題、標籤或備註")}</div>
           <RecordsTable records={filtered.filter((record) => record.kind === "audio")} onOpen={setActiveRecord} />
@@ -347,11 +347,11 @@ export default function App() {
   function renderSettingsPage() {
     return (
       <>
-        <PageHeader title="設定" subtitle="管理快捷標籤、本機資料、備份與裝置儲存狀態" />
+        <PageHeader title="設定" subtitle="管理照片標籤、本機資料、備份與裝置儲存狀態" />
         <div className="settings-grid">
           <section className="panel setting-card">
             <span className="setting-icon">TAG</span>
-            <div><h2>快捷標籤</h2><p>最多 8 個，可自行新增、移除與調整順序；錄音與編輯紀錄時會使用這組標籤。</p><QuickTagEditor tags={quickTags} onChange={saveQuickTags} flash={flash} /></div>
+            <div><h2>照片標籤</h2><p>最多 8 個，可自行新增、移除與調整順序；編輯照片紀錄時會使用這組標籤。</p><QuickTagEditor tags={quickTags} onChange={saveQuickTags} flash={flash} /></div>
           </section>
           <section className="panel setting-card">
             <span className="setting-icon">ZIP</span>
@@ -404,7 +404,18 @@ export default function App() {
 
       {notice && <div className="toast" role="status">{notice}</div>}
       {activeRecord && (
-        <RecordModal record={activeRecord} quickTags={quickTags} onClose={() => setActiveRecord(null)} onSave={saveModalRecord} onDelete={removeRecord} />
+        <RecordModal
+          record={activeRecord}
+          quickTags={quickTags}
+          onClose={() => setActiveRecord(null)}
+          onSave={saveModalRecord}
+          onUpdate={async (record) => {
+            await saveRecord(record);
+            setActiveRecord(record);
+          }}
+          onDelete={removeRecord}
+          flash={flash}
+        />
       )}
     </div>
   );

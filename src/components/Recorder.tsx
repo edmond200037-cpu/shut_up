@@ -1,30 +1,111 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import type { EvidenceRecord, Marker } from "../types";
+import type { AudioMarker, EvidenceRecord } from "../types";
 import { fileOccurredAt, sha256 } from "../lib/files";
 import { formatDuration, makeId } from "../lib/format";
 
+const RECORDING_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/mp4;codecs=mp4a.40.2",
+  "audio/webm",
+  "audio/ogg;codecs=opus",
+];
+
+function canPlayRecordedMime(audio: HTMLAudioElement, mimeType: string) {
+  const support = audio.canPlayType(mimeType);
+  return support === "probably" || support === "maybe";
+}
+
+function pickRecordingMimeType() {
+  const audio = document.createElement("audio");
+  return RECORDING_MIME_CANDIDATES.find((mimeType) =>
+    MediaRecorder.isTypeSupported(mimeType) && canPlayRecordedMime(audio, mimeType),
+  );
+}
+
+function resolveAudioExtension(mimeType: string) {
+  if (mimeType.includes("mpeg")) return "mp3";
+  if (mimeType.includes("mp4") || mimeType.includes("m4a")) return "m4a";
+  if (mimeType.includes("ogg")) return "ogg";
+  if (mimeType.includes("webm")) return "webm";
+  return "bin";
+}
+
+function describeRecordedBlobError(audio: HTMLAudioElement) {
+  const detail = audio.error;
+  if (!detail) return "錄音完成，但瀏覽器無法讀取這份音訊資料。";
+  switch (detail.code) {
+    case MediaError.MEDIA_ERR_ABORTED:
+      return "錄音完成，但瀏覽器中止了音訊載入。";
+    case MediaError.MEDIA_ERR_NETWORK:
+      return "錄音完成，但讀取音訊資料時失敗。";
+    case MediaError.MEDIA_ERR_DECODE:
+      return "錄音完成，但音訊解碼失敗，資料可能不完整。";
+    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+      return "錄音完成，但這份音訊資料沒有被瀏覽器正確辨識。";
+    default:
+      return "錄音完成，但瀏覽器無法讀取這份音訊資料。";
+  }
+}
+
+async function validateRecordedBlob(blob: Blob) {
+  return await new Promise<number>((resolve, reject) => {
+    const audio = document.createElement("audio");
+    const url = URL.createObjectURL(blob);
+    let settled = false;
+
+    const cleanup = () => {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      URL.revokeObjectURL(url);
+    };
+
+    const succeed = () => {
+      if (settled) return;
+      settled = true;
+      const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+      cleanup();
+      resolve(duration);
+    };
+
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      const message = describeRecordedBlobError(audio);
+      cleanup();
+      reject(new Error(message));
+    };
+
+    audio.preload = "metadata";
+    audio.onloadedmetadata = succeed;
+    audio.oncanplay = succeed;
+    audio.onerror = fail;
+    audio.src = url;
+    audio.load();
+  });
+}
+
 export function Recorder({
-  quickTags,
   onSave,
   flash,
 }: {
-  quickTags: string[];
   onSave: (record: EvidenceRecord) => Promise<void>;
   flash: (message: string) => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [markers, setMarkers] = useState<Marker[]>([]);
-  const [pendingTags, setPendingTags] = useState<string[]>([]);
+  const [markers, setMarkers] = useState<AudioMarker[]>([]);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const markerRef = useRef<Marker[]>([]);
+  const markerRef = useRef<AudioMarker[]>([]);
+  const recordingIdRef = useRef("");
   const activeSecondsRef = useRef(0);
   const lastTickRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chunkMimeRef = useRef("");
 
   useEffect(() => {
     markerRef.current = markers;
@@ -57,43 +138,68 @@ export function Recorder({
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
-      const preferred = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((type) =>
-        MediaRecorder.isTypeSupported(type),
-      );
+      const preferred = pickRecordingMimeType();
       const recorder = new MediaRecorder(stream, preferred ? { mimeType: preferred } : undefined);
       const startedAt = new Date();
+      recordingIdRef.current = makeId("AUD");
       chunksRef.current = [];
+      chunkMimeRef.current = "";
       markerRef.current = [];
       activeSecondsRef.current = 0;
       setMarkers([]);
-      setPendingTags([]);
       setElapsed(0);
       setIsPaused(false);
 
-      recorder.ondataavailable = (event) => event.data.size && chunksRef.current.push(event.data);
+      recorder.ondataavailable = (event) => {
+        if (!event.data.size) return;
+        if (!chunkMimeRef.current && event.data.type) chunkMimeRef.current = event.data.type;
+        chunksRef.current.push(event.data);
+      };
       recorder.onstop = async () => {
-        const mime = recorder.mimeType || preferred || "audio/webm";
+        const mime = chunkMimeRef.current || recorder.mimeType || preferred || "application/octet-stream";
+        if (!chunksRef.current.length) {
+          stream.getTracks().forEach((track) => track.stop());
+          recorderRef.current = null;
+          streamRef.current = null;
+          flash("錄音失敗，沒有取得可儲存的音訊資料。");
+          return;
+        }
         const blob = new Blob(chunksRef.current, { type: mime });
-        const extension = mime.includes("mp4") ? "m4a" : "webm";
-        const record: EvidenceRecord = {
-          id: makeId("AUD"),
-          kind: "audio",
-          title: `對話錄音 ${startedAt.toLocaleString("zh-TW", { hour12: false })}`,
-          occurredAt: startedAt.toISOString(),
-          createdAt: new Date().toISOString(),
-          duration: Math.max(1, Math.round(activeSecondsRef.current)),
-          tags: [...new Set(markerRef.current.map((marker) => marker.tag))],
-          markers: markerRef.current,
-          notes: "",
-          mime,
-          fileName: `recording-${startedAt.getTime()}.${extension}`,
-          fileSize: blob.size,
-          sha256: await sha256(blob),
-          blob,
-        };
-        stream.getTracks().forEach((track) => track.stop());
-        await onSave(record);
-        flash("錄音已安全儲存在本機裝置。");
+        if (!blob.size) {
+          stream.getTracks().forEach((track) => track.stop());
+          recorderRef.current = null;
+          streamRef.current = null;
+          flash("錄音失敗，音訊資料為空。");
+          return;
+        }
+        try {
+          const validatedDuration = await validateRecordedBlob(blob);
+          const extension = resolveAudioExtension(mime);
+          const record: EvidenceRecord = {
+            id: recordingIdRef.current,
+            kind: "audio",
+            title: `對話錄音 ${startedAt.toLocaleString("zh-TW", { hour12: false })}`,
+            occurredAt: startedAt.toISOString(),
+            createdAt: new Date().toISOString(),
+            duration: Math.max(1, Math.round(validatedDuration || activeSecondsRef.current)),
+            tags: [],
+            markers: markerRef.current,
+            notes: "",
+            mime,
+            fileName: `recording-${startedAt.getTime()}.${extension}`,
+            fileSize: blob.size,
+            sha256: await sha256(blob),
+            blob,
+          };
+          await onSave(record);
+          flash("錄音已安全儲存在本機裝置。");
+        } catch (error) {
+          flash(error instanceof Error ? error.message : "錄音失敗，請重新錄製一次。");
+        } finally {
+          stream.getTracks().forEach((track) => track.stop());
+          recorderRef.current = null;
+          streamRef.current = null;
+        }
       };
 
       recorderRef.current = recorder;
@@ -134,15 +240,19 @@ export function Recorder({
     setIsPaused(false);
   }
 
-  function toggleTag(tag: string) {
-    if (isRecording) {
-      const marker = { at: elapsed, tag };
-      markerRef.current = [...markerRef.current, marker];
-      setMarkers(markerRef.current);
-      flash(`已在 ${formatDuration(elapsed)} 標記「${tag}」`);
-      return;
-    }
-    setPendingTags((current) => current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag]);
+  function addQuickMarker() {
+    const recorder = recorderRef.current;
+    if (recorder?.state !== "recording") return;
+    const timestamp = activeSecondsRef.current + (Date.now() - lastTickRef.current) / 1_000;
+    const marker: AudioMarker = {
+      id: `${recordingIdRef.current}-MARK-${markerRef.current.length + 1}`,
+      timestamp,
+      previewStart: Math.max(0, timestamp - 10),
+      category: "",
+    };
+    markerRef.current = [...markerRef.current, marker];
+    setMarkers(markerRef.current);
+    flash(`已加入快速${markerRef.current.length} · ${formatDuration(timestamp)}`);
   }
 
   async function importAudio(event: ChangeEvent<HTMLInputElement>) {
@@ -154,7 +264,7 @@ export function Recorder({
         title: file.name.replace(/\.[^.]+$/, ""),
         occurredAt: fileOccurredAt(file),
         createdAt: new Date().toISOString(),
-        tags: pendingTags,
+        tags: [],
         markers: [],
         notes: "由本機匯入；發生時間先採用檔案可用日期，可在明細中修改。",
         mime: file.type || "audio/mpeg",
@@ -165,7 +275,6 @@ export function Recorder({
       });
     }
     event.target.value = "";
-    setPendingTags([]);
     if (files.length) flash(`已加入 ${files.length} 個音檔。`);
   }
 
@@ -185,7 +294,10 @@ export function Recorder({
         </div>
         <div className="record-controls">
           {isRecording ? (
-            <button className="secondary-button" onClick={togglePause}>{isPaused ? "繼續錄音" : "暫停錄音"}</button>
+            <>
+              <button className="secondary-button" onClick={togglePause}>{isPaused ? "繼續錄音" : "暫停錄音"}</button>
+              <button className="quick-marker-button" disabled={isPaused} onClick={addQuickMarker}>快速標籤</button>
+            </>
           ) : (
             <button className="secondary-button" onClick={() => inputRef.current?.click()}>上傳既有音檔</button>
           )}
@@ -196,25 +308,15 @@ export function Recorder({
 
       <section className="panel tag-panel">
         <p className="eyebrow">QUICK MARKERS</p>
-        <h2>快速標記</h2>
-        <p>錄音中點擊會記錄當下時間；上傳前點擊則套用為初步標籤。</p>
-        <div className="quick-tags">
-          {quickTags.map((tag) => (
-            <button
-              key={tag}
-              className={pendingTags.includes(tag) || markers.some((marker) => marker.tag === tag) ? "active" : ""}
-              onClick={() => toggleTag(tag)}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
+        <h2>快速標籤</h2>
+        <p>錄音中按下「快速標籤」只記錄當下時間，錄完後再到對話對帳單分類。</p>
+        {!isRecording && <div className="marker-empty">開始錄音後即可隨時加入時間定位</div>}
         {isRecording && markers.length > 0 && (
           <div className="marker-list">
             {markers.slice().reverse().map((marker, index) => (
-              <div key={`${marker.at}-${index}`}>
-                <span className="mono">{formatDuration(marker.at)}</span>
-                <strong>{marker.tag}</strong>
+              <div key={marker.id}>
+                <span className="mono">{formatDuration(marker.timestamp)}</span>
+                <strong>快速{markers.length - index}</strong>
               </div>
             ))}
           </div>

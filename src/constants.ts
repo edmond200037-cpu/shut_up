@@ -1,12 +1,6 @@
-import type { View } from "./types";
+import { EVIDENCE_CATEGORIES, type View } from "./types";
 
-export const DEFAULT_QUICK_TAGS = [
-  "貶抑侮辱",
-  "威脅恐嚇",
-  "咆哮斥責",
-  "排擠孤立",
-  "不當要求",
-];
+export const DEFAULT_QUICK_TAGS: string[] = [...EVIDENCE_CATEGORIES];
 
 export const MAX_QUICK_TAGS = 8;
 

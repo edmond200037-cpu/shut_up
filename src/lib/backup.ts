@@ -117,7 +117,7 @@ export async function buildBackup(records: EvidenceRecord[], quickTags: string[]
   }
   const manifest: BackupManifest = {
     format: "shut-up-evidence-backup",
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     quickTags,
     records: manifestRecords,
@@ -150,7 +150,7 @@ export function parseBackup(buffer: ArrayBuffer) {
   if (raw.format === "swear-cashier-backup" && raw.version === 1) {
     const manifest: BackupManifest = {
       format: "shut-up-evidence-backup",
-      version: 2,
+      version: 3,
       exportedAt: raw.exportedAt || new Date().toISOString(),
       quickTags: DEFAULT_QUICK_TAGS,
       records: raw.records.map((record): BackupRecord => ({
@@ -161,9 +161,13 @@ export function parseBackup(buffer: ArrayBuffer) {
     };
     return { files, manifest };
   }
-  if (raw.format !== "shut-up-evidence-backup" || raw.version !== 2 || !Array.isArray(raw.quickTags)) {
+  if (
+    raw.format !== "shut-up-evidence-backup"
+    || ![2, 3].includes(raw.version || 0)
+    || !Array.isArray(raw.quickTags)
+  ) {
     throw new Error("不是相容的髒話收銀機備份");
   }
-  const manifest = raw as BackupManifest;
+  const manifest = { ...raw, version: 3 } as BackupManifest;
   return { files, manifest };
 }

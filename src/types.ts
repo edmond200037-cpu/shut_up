@@ -8,9 +8,22 @@ export type View =
 
 export type EvidenceKind = "audio" | "photo";
 
-export type Marker = {
+export type LegacyMarker = {
   at: number;
-  tag: string;
+  tag?: string;
+};
+
+export const EVIDENCE_CATEGORIES = ["辱罵", "恐嚇", "霸凌", "歧視", "性騷擾", "其他"] as const;
+
+export type EvidenceCategory = (typeof EVIDENCE_CATEGORIES)[number];
+
+export type AudioMarker = {
+  id: string;
+  /** 錄音開始後的秒數。 */
+  timestamp: number;
+  /** 點擊標籤時播放器開始預覽的秒數。 */
+  previewStart: number;
+  category: EvidenceCategory | "";
 };
 
 export type EvidenceRecord = {
@@ -23,7 +36,7 @@ export type EvidenceRecord = {
   createdAt: string;
   duration?: number;
   tags: string[];
-  markers?: Marker[];
+  markers?: AudioMarker[];
   notes: string;
   amount?: number;
   mime: string;
@@ -39,7 +52,7 @@ export type BackupRecord = Omit<EvidenceRecord, "blob"> & {
 
 export type BackupManifest = {
   format: "shut-up-evidence-backup";
-  version: 2;
+  version: 3;
   exportedAt: string;
   quickTags: string[];
   records: BackupRecord[];

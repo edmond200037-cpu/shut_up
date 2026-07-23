@@ -61,6 +61,8 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
 .record-button small { margin-top: 6px; font-size: 11px; }
 .recording .record-button { background: var(--danger); color: #fff; animation: recordPulse 1.6s ease-in-out infinite; }
 .record-controls { position: relative; z-index: 2; width: min(100%, 440px); padding-top: 20px; margin-top: 15px; border-top: 1px dashed #8d876f; display: flex; align-items: center; justify-content: center; gap: 18px; color: #666050; font-size: 12px; }
+.quick-marker-button { min-height: 43px; border: 2px solid var(--ink); border-radius: 6px; padding: 9px 16px; background: var(--lime); color: var(--ink); box-shadow: 3px 3px 0 var(--ink); font-weight: 900; cursor: pointer; }
+.quick-marker-button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
 
 .receipt-card { min-height: 410px; position: relative; background: var(--paper-bright); padding: 34px 38px; filter: drop-shadow(0 13px 11px rgba(51,43,22,.14)); align-self: stretch; }
 .receipt-teeth { position: absolute; left: 0; right: 0; height: 12px; background: linear-gradient(135deg, transparent 50%, var(--paper-bright) 51%) 0 0/16px 16px, linear-gradient(225deg, transparent 50%, var(--paper-bright) 51%) 0 0/16px 16px; }
@@ -102,6 +104,7 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
 .quick-tags button:hover, .quick-tags button.active { background: var(--lime); border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
 .marker-list { margin-top: 20px; max-height: 160px; overflow: auto; border-top: 1px dashed #999077; }
 .marker-list div { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px dotted #bbb299; font-size: 13px; }
+.marker-empty { border-block: 1px dashed #aaa188; padding: 18px 0; color: #77705e; font-size: 13px; }
 
 .primary-button, .secondary-button, .dark-button, .danger-button { min-height: 43px; border-radius: 6px; padding: 9px 16px; font-weight: 850; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
 .primary-button { border: 2px solid var(--ink); background: var(--lime); box-shadow: 3px 3px 0 var(--ink); }
@@ -151,11 +154,10 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
 
 .toast { position: fixed; right: 26px; bottom: 26px; z-index: 50; max-width: 420px; padding: 15px 18px; border: 2px solid var(--ink); background: var(--lime); box-shadow: 5px 5px 0 var(--ink); font-weight: 800; animation: toastIn .2s ease-out; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(17,18,15,.68); display: grid; place-items: center; padding: 24px; overflow: auto; }
-.detail-modal { width: min(720px, 100%); max-height: calc(100vh - 48px); overflow-y: auto; background: var(--paper-bright); border: 2px solid var(--ink); padding: 26px; box-shadow: 12px 12px 0 rgba(200,255,56,.75); }
+.detail-modal { width: min(820px, 100%); max-height: calc(100vh - 48px); overflow-y: auto; background: var(--paper-bright); border: 2px solid var(--ink); padding: 26px; box-shadow: 12px 12px 0 rgba(200,255,56,.75); }
 .detail-modal header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px dashed var(--ink); padding-bottom: 15px; margin-bottom: 20px; }
 .detail-modal h2 { margin: 0; font-size: 30px; }
 .close-button { border: 0; background: transparent; font-size: 34px; cursor: pointer; }
-.detail-modal audio { width: 100%; margin-bottom: 18px; }
 .detail-image { width: 100%; max-height: 320px; object-fit: contain; background: #d8d0b6; margin-bottom: 18px; }
 .integrity-strip { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; border: 1px dashed #978e74; padding: 10px 12px; color: #645e4f; font-size: 11px; }
 .detail-modal > label { display: grid; gap: 7px; margin: 15px 0; font-weight: 800; }
@@ -165,6 +167,33 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
 .detail-modal legend { padding: 0 8px; font-weight: 800; }
 .modal-markers { display: grid; gap: 8px; border-top: 1px dashed #918970; padding-top: 14px; }
 .modal-markers span { display: flex; gap: 14px; font-size: 13px; }
+.evidence-player { padding: 8px 6px 12px; }
+.evidence-player audio { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.timeline-times { display: flex; justify-content: space-between; color: #5f594b; font-size: 11px; }
+.evidence-timeline { height: 64px; position: relative; margin: 4px 10px 2px; cursor: pointer; }
+.timeline-rail, .timeline-progress { position: absolute; top: 19px; left: 0; height: 5px; border: 1px solid var(--ink); }
+.timeline-rail { width: 100%; background: #d8d0b6; }
+.timeline-progress { max-width: 100%; background: var(--lime); border-right: 0; }
+.timeline-playhead { position: absolute; z-index: 3; top: 14px; width: 15px; height: 15px; border: 2px solid var(--paper-bright); border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 1px var(--ink); transform: translateX(-50%); pointer-events: none; }
+.timeline-marker { position: absolute; z-index: 2; top: 9px; width: 2px; height: 27px; border: 0; border-radius: 0; padding: 0; background: var(--ink); cursor: pointer; transform: translateX(-50%); }
+.timeline-marker span { position: absolute; top: 30px; left: 50%; min-width: 25px; color: var(--ink); font: 800 16px/1 ui-monospace, monospace; transform: translateX(-50%); }
+.timeline-marker.active { width: 4px; background: var(--danger); }
+.timeline-marker.active span { color: #a83124; }
+.player-toggle { min-width: 116px; min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 9px; margin: 0 auto; border: 2px solid var(--ink); border-radius: 5px; background: var(--paper-bright); color: var(--ink); font-weight: 900; cursor: pointer; }
+.player-toggle span { width: 18px; }
+.player-error { margin: 10px 0 0; border: 1px solid #a83124; border-radius: 5px; padding: 9px 11px; background: #fff0ec; color: #842116; font-size: 13px; font-weight: 800; }
+.audio-reconciliation { border-bottom: 2px dashed var(--ink); margin-bottom: 16px; }
+.audio-reconciliation h3 { margin: 0 0 11px; font-size: 16px; }
+.marker-strip-section, .category-section { padding: 15px 0 18px; border-bottom: 1px dashed #918970; }
+.marker-strip-section { padding-top: 10px; }
+.category-section { border-bottom: 0; }
+.marker-strip { display: flex; gap: 9px; overflow-x: auto; padding: 3px 3px 10px; scrollbar-width: thin; }
+.marker-strip button { flex: 0 0 auto; min-height: 40px; border: 1px solid #8f876f; border-radius: 999px; padding: 8px 14px; background: transparent; color: var(--ink); font-weight: 800; cursor: pointer; }
+.marker-strip button.active { border: 2px solid var(--ink); background: var(--lime); box-shadow: 2px 2px 0 var(--ink); }
+.category-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.category-buttons button { min-height: 44px; border: 1px solid #807863; border-radius: 5px; background: #fffdf5; color: var(--ink); font-weight: 850; cursor: pointer; }
+.category-buttons button:hover:not(:disabled), .category-buttons button.active { border: 2px solid var(--ink); background: var(--lime); box-shadow: 2px 2px 0 var(--ink); }
+.category-buttons button:disabled { cursor: not-allowed; opacity: .38; }
 .detail-modal footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 2px dashed var(--ink); padding-top: 20px; margin-top: 22px; }
 .detail-modal footer > div { display: flex; gap: 10px; }
 .danger-link { border: 0; background: transparent; color: #a83124; text-decoration: underline; cursor: pointer; }
@@ -217,6 +246,7 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
   .measurement-ring { width: 235px; height: 235px; }
   .record-button { width: 174px; height: 174px; }
   .record-button strong { font-size: 21px; }
+  .record-controls { flex-wrap: wrap; gap: 10px; }
   .receipt-card { padding-inline: 25px; }
   .panel { padding: 16px; }
   .checkout-row { grid-template-columns: 35px 1fr; padding: 12px 0; }
@@ -225,6 +255,7 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
   .setting-icon { width: 48px; height: 48px; font-size: 11px; }
   .privacy-note, .detail-modal footer { flex-direction: column; align-items: stretch; }
   .detail-modal { padding: 18px; }
+  .category-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .detail-modal footer > div { flex-direction: column; }
   .tag-editor-list > div { grid-template-columns: 28px minmax(0,1fr) 32px 32px; }
   .tag-editor-list .danger-link { grid-column: 2 / -1; justify-self: end; }

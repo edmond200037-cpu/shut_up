@@ -1,5 +1,5 @@
 import { DEFAULT_QUICK_TAGS } from "../constants";
-import type { EvidenceRecord } from "../types";
+import { EVIDENCE_CATEGORIES, type AudioMarker, type EvidenceCategory, type EvidenceRecord } from "../types";
 
 const DB_NAME = "swear-cashier-local";
 const DB_VERSION = 2;
@@ -33,6 +33,42 @@ export function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
+type RawMarker = Partial<AudioMarker> & {
+  at?: number;
+  tag?: string;
+  atMs?: number;
+  tags?: string[];
+};
+
+function isCategory(value: unknown): value is EvidenceCategory {
+  return typeof value === "string" && EVIDENCE_CATEGORIES.some((category) => category === value);
+}
+
+export function normalizeMarkers(markers: unknown, recordingId: string): AudioMarker[] {
+  if (!Array.isArray(markers)) return [];
+  return markers.flatMap((value, index) => {
+    if (!value || typeof value !== "object") return [];
+    const marker = value as RawMarker;
+    const timestamp = Number.isFinite(marker.timestamp)
+      ? Number(marker.timestamp)
+      : Number.isFinite(marker.at)
+        ? Number(marker.at)
+        : Number.isFinite(marker.atMs)
+          ? Number(marker.atMs) / 1_000
+          : NaN;
+    if (!Number.isFinite(timestamp)) return [];
+    const safeTimestamp = Math.max(0, timestamp);
+    const legacyCategory = isCategory(marker.tag) ? marker.tag : "";
+    const eventCategory = marker.tags?.find(isCategory) || "";
+    return [{
+      id: typeof marker.id === "string" && marker.id ? marker.id : `${recordingId}-MARK-${index + 1}`,
+      timestamp: safeTimestamp,
+      previewStart: Math.max(0, safeTimestamp - 10),
+      category: isCategory(marker.category) ? marker.category : legacyCategory || eventCategory,
+    }];
+  });
+}
+
 function normalizeRecord(record: Partial<EvidenceRecord> & Pick<EvidenceRecord, "id" | "blob">): EvidenceRecord {
   const createdAt = record.createdAt || new Date().toISOString();
   return {
@@ -43,7 +79,7 @@ function normalizeRecord(record: Partial<EvidenceRecord> & Pick<EvidenceRecord, 
     createdAt,
     duration: record.duration,
     tags: Array.isArray(record.tags) ? record.tags : [],
-    markers: Array.isArray(record.markers) ? record.markers : [],
+    markers: normalizeMarkers(record.markers, record.id),
     notes: record.notes || "",
     amount: Number(record.amount) || 0,
     mime: record.mime || record.blob.type || "application/octet-stream",
