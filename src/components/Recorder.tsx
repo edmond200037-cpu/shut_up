@@ -295,21 +295,23 @@ export function Recorder({
   return (
     <div className="record-page-grid">
       <section className={`recorder-card ${isRecording ? "recording" : ""}`}>
-        <button
-          type="button"
-          className="measurement-ring"
-          onClick={isRecording ? stopRecording : beginRecording}
-          aria-label={isRecording ? "停止錄音" : "開始錄音"}
-        >
-          <svg className="measurement-ring-track" viewBox="0 0 100 100" aria-hidden="true">
-            <circle cx="50" cy="50" r="46" pathLength="100" />
-          </svg>
-          <span className="record-button" aria-hidden="true">
-            <span className="record-icon">{isRecording ? "■" : "●"}</span>
-            <strong>{isRecording ? formatDuration(elapsed) : "開始錄音"}</strong>
-            <small>{isRecording ? (isPaused ? "已暫停" : "錄音中 · 點擊停止") : "麥克風資料只留在本機"}</small>
-          </span>
-        </button>
+        <div className="recorder-stage">
+          <button
+            type="button"
+            className="measurement-ring"
+            onClick={isRecording ? stopRecording : beginRecording}
+            aria-label={isRecording ? "停止錄音" : "開始錄音"}
+          >
+            <svg className="measurement-ring-track" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="46" pathLength="100" />
+            </svg>
+            <span className="record-button" aria-hidden="true">
+              <span className="record-icon">{isRecording ? "■" : "●"}</span>
+              <strong>{isRecording ? formatDuration(elapsed) : "開始錄音"}</strong>
+              <small>{isRecording ? (isPaused ? "已暫停" : "錄音中 · 點擊停止") : "麥克風資料只留在本機"}</small>
+            </span>
+          </button>
+        </div>
         <div className="record-controls">
           {isRecording ? (
             <>

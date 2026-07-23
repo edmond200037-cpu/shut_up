@@ -49,28 +49,31 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
 .record-page-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, .9fr); gap: 28px; align-items: stretch; margin-bottom: 28px; }
 .dashboard-grid .record-page-grid { display: contents; }
 .dashboard-grid .tag-panel { display: none; }
-.recorder-card { min-height: clamp(360px, 42vw, 470px); border: 1px solid var(--line); border-radius: 9px; background: rgba(250,248,238,.52); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 26px; position: relative; overflow: hidden; }
-.recorder-card::before { content: ""; position: absolute; width: min(clamp(260px, 42vw, 420px), calc(100% - 32px)); aspect-ratio: 1 / 1; height: auto; inset: 50% auto auto 50%; z-index: 0; border: 1px dashed rgba(23,25,22,.25); border-radius: 50%; opacity: .78; transform: translate(-50%, -50%) scale(.86); pointer-events: none; box-shadow: 0 0 0 0 rgba(200,255,56,0), 0 0 0 rgba(89,100,42,0); animation: recorderGlowBreath 3.6s ease-in-out infinite; transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease, opacity .24s ease; }
-.recorder-card::after { content: ""; position: absolute; width: min(clamp(260px, 42vw, 420px), calc(100% - 20px)); aspect-ratio: 1 / 1; height: auto; inset: 50% auto auto 50%; z-index: 0; border: 1px dashed rgba(89,100,42,.36); border-radius: 50%; opacity: .58; pointer-events: none; animation: recorderRadarSpin 18s linear infinite; transition: border-color .24s ease, opacity .24s ease, filter .24s ease, transform .24s ease; }
-.measurement-ring { width: 270px; height: 270px; border: 0; border-radius: 50%; display: grid; place-items: center; position: relative; z-index: 1; padding: 0; background: transparent; color: var(--ink); cursor: pointer; transition: transform .24s ease, filter .24s ease; }
+.recorder-card { --recorder-orbit-size: min(clamp(280px, 38vw, 440px), calc(100% - 32px)); --recorder-controls-band: 60px; --recorder-stage-gap: 20px; height: calc(var(--recorder-orbit-size) + 134px); min-height: 0; border: 1px solid var(--line); border-radius: 9px; background: rgba(250,248,238,.52); display: grid; grid-template-rows: minmax(0, 1fr) var(--recorder-controls-band); row-gap: var(--recorder-stage-gap); justify-items: center; padding: 26px; position: relative; overflow: hidden; }
+.recorder-card::before, .recorder-card::after { content: none; display: none; }
+.recorder-stage { width: var(--recorder-orbit-size); aspect-ratio: 1 / 1; min-width: 0; position: relative; align-self: center; justify-self: center; display: grid; place-items: center; isolation: isolate; }
+.recorder-stage::before, .recorder-stage::after { content: ""; position: absolute; left: 50%; top: 50%; translate: -50% -50%; aspect-ratio: 1 / 1; border-radius: 50%; pointer-events: none; }
+.recorder-stage::before { width: 88%; z-index: 0; border: 1px dashed rgba(23,25,22,.25); opacity: .78; scale: 1; box-shadow: 0 0 0 0 rgba(200,255,56,0), 0 0 0 rgba(89,100,42,0); animation: recorderGlowBreath 3.6s ease-in-out infinite; transition: border-color .24s ease, box-shadow .24s ease, opacity .24s ease; }
+.recorder-stage::after { width: 100%; z-index: 0; border: 1px dashed rgba(89,100,42,.36); opacity: .58; animation: recorderRadarSpin 18s linear infinite; transition: border-color .24s ease, opacity .24s ease, filter .24s ease, scale .24s ease; }
+.measurement-ring { width: 58%; aspect-ratio: 1 / 1; height: auto; margin: 0; flex: none; border: 0; border-radius: 50%; display: grid; place-items: center; position: relative; z-index: 1; padding: 0; background: transparent; color: var(--ink); cursor: pointer; transition: scale .24s ease, filter .24s ease; }
 .measurement-ring::before { content: ""; position: absolute; inset: 18px; border-radius: 50%; background: var(--paper-bright); border: 1px solid var(--ink); pointer-events: none; }
 .measurement-ring-track { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .measurement-ring-track circle { fill: none; stroke: rgba(23,25,22,.55); stroke-width: 1.5; stroke-dasharray: 2 4; transition: stroke .24s ease, stroke-width .24s ease; }
 .measurement-ring:hover, .measurement-ring:focus-visible { transform: scale(1.03); filter: drop-shadow(0 8px 10px rgba(59,72,21,.2)); }
-.recorder-card:has(.measurement-ring:hover)::before, .recorder-card:has(.measurement-ring:focus-visible)::before { border-color: var(--lime); opacity: 1; animation-name: recorderGlowBreathHover; animation-duration: 2.8s; }
-.recorder-card:has(.measurement-ring:hover)::after, .recorder-card:has(.measurement-ring:focus-visible)::after { border-color: rgba(200,255,56,.62); opacity: .82; animation-duration: 14s; filter: drop-shadow(0 0 8px rgba(89,100,42,.18)); }
+.recorder-stage:has(.measurement-ring:hover)::before, .recorder-stage:has(.measurement-ring:focus-visible)::before { border-color: var(--lime); opacity: 1; animation-name: recorderGlowBreathHover; animation-duration: 2.8s; }
+.recorder-stage:has(.measurement-ring:hover)::after, .recorder-stage:has(.measurement-ring:focus-visible)::after { border-color: rgba(200,255,56,.62); opacity: .82; animation-duration: 14s; filter: drop-shadow(0 0 8px rgba(89,100,42,.18)); }
 .measurement-ring:hover .measurement-ring-track circle, .measurement-ring:focus-visible .measurement-ring-track circle { stroke: var(--olive); stroke-width: 2; animation: ringDashFlow 1.1s linear infinite; }
-.measurement-ring:active { transform: scale(.99); filter: none; }
-.recorder-card:has(.measurement-ring:active)::before { border-color: rgba(23,25,22,.38); opacity: .68; animation: none; transform: translate(-50%, -50%) scale(.84); box-shadow: 0 0 0 2px rgba(200,255,56,.05), 0 0 10px rgba(89,100,42,.1); }
-.recorder-card:has(.measurement-ring:active)::after { border-color: rgba(89,100,42,.28); opacity: .45; animation: none; transform: translate(-50%, -50%) scale(.97); }
-.record-button { position: relative; z-index: 1; width: 204px; height: 204px; border-radius: 50%; border: 2px solid var(--ink); background: var(--lime); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; box-shadow: 0 0 0 8px rgba(200,255,56,.18), 0 10px 24px rgba(59,72,21,.2); transition: transform .24s ease, box-shadow .24s ease, background .24s ease; }
-.measurement-ring:hover .record-button, .measurement-ring:focus-visible .record-button { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(200,255,56,.2), 0 12px 26px rgba(59,72,21,.25); }
-.measurement-ring:active .record-button { transform: scale(.98); box-shadow: 0 0 0 5px rgba(200,255,56,.12), 0 7px 16px rgba(59,72,21,.16); }
+.measurement-ring:active { scale: .99; filter: none; }
+.recorder-stage:has(.measurement-ring:active)::before { border-color: rgba(23,25,22,.38); opacity: .68; animation: none; scale: .95; box-shadow: 0 0 0 2px rgba(200,255,56,.05), 0 0 10px rgba(89,100,42,.1); }
+.recorder-stage:has(.measurement-ring:active)::after { border-color: rgba(89,100,42,.28); opacity: .45; animation: none; scale: .97; }
+.record-button { position: relative; z-index: 1; width: min(204px, 100%); height: auto; aspect-ratio: 1 / 1; border-radius: 50%; border: 2px solid var(--ink); background: var(--lime); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; box-shadow: 0 0 0 8px rgba(200,255,56,.18), 0 10px 24px rgba(59,72,21,.2); transition: scale .24s ease, box-shadow .24s ease, background .24s ease; }
+.measurement-ring:hover .record-button, .measurement-ring:focus-visible .record-button { scale: 1.02; box-shadow: 0 0 0 12px rgba(200,255,56,.2), 0 12px 26px rgba(59,72,21,.25); }
+.measurement-ring:active .record-button { scale: .98; box-shadow: 0 0 0 5px rgba(200,255,56,.12), 0 7px 16px rgba(59,72,21,.16); }
 .record-icon { font-size: 36px; line-height: 1; margin-bottom: 10px; }
 .record-button strong { font-size: 24px; font-weight: 950; }
 .record-button small { margin-top: 6px; font-size: 11px; }
 .recording .record-button { background: var(--danger); color: #fff; animation: recordPulse 1.6s ease-in-out infinite; }
-.record-controls { position: relative; z-index: 2; width: min(100%, 440px); padding-top: 20px; margin-top: 15px; border-top: 1px dashed #8d876f; display: flex; align-items: center; justify-content: center; gap: 18px; color: #666050; font-size: 12px; }
+.record-controls { position: relative; z-index: 3; width: min(440px, 90%); height: var(--recorder-controls-band); min-height: var(--recorder-controls-band); padding-top: 16px; margin-top: 0; border-top: 1px dashed #8d876f; display: flex; align-items: center; justify-content: center; gap: 16px; color: #666050; font-size: 12px; }
 .quick-marker-button { min-height: 43px; border: 2px solid var(--ink); border-radius: 6px; padding: 9px 16px; background: var(--lime); color: var(--ink); box-shadow: 3px 3px 0 var(--ink); font-weight: 900; cursor: pointer; }
 .quick-marker-button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
 
@@ -304,22 +307,22 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
 @keyframes recordPulse { 50% { box-shadow: 0 0 0 18px rgba(217,81,61,.13), 0 12px 26px rgba(100,24,17,.24); } }
 @keyframes ringDashFlow { to { stroke-dashoffset: -6; } }
 @keyframes recorderGlowBreath {
-  0%, 100% { opacity: .68; transform: translate(-50%, -50%) scale(.86); box-shadow: 0 0 0 0 rgba(200,255,56,0), 0 0 10px rgba(89,100,42,.08); }
-  50% { opacity: .84; transform: translate(-50%, -50%) scale(.90); box-shadow: 0 0 0 5px rgba(200,255,56,.06), 0 0 24px rgba(89,100,42,.18); }
+  0%, 100% { opacity: .45; scale: .97; box-shadow: 0 0 0 0 rgba(200,255,56,0), 0 0 10px rgba(89,100,42,.08); }
+  50% { opacity: .85; scale: 1.03; box-shadow: 0 0 0 5px rgba(200,255,56,.06), 0 0 24px rgba(89,100,42,.18); }
 }
 @keyframes recorderGlowBreathHover {
-  0%, 100% { opacity: .84; transform: translate(-50%, -50%) scale(.89); box-shadow: 0 0 0 4px rgba(200,255,56,.08), 0 0 18px rgba(89,100,42,.16); }
-  50% { opacity: 1; transform: translate(-50%, -50%) scale(.93); box-shadow: 0 0 0 8px rgba(200,255,56,.14), 0 0 30px rgba(89,100,42,.28); }
+  0%, 100% { opacity: .72; scale: 1; box-shadow: 0 0 0 4px rgba(200,255,56,.08), 0 0 18px rgba(89,100,42,.16); }
+  50% { opacity: 1; scale: 1.05; box-shadow: 0 0 0 8px rgba(200,255,56,.14), 0 0 30px rgba(89,100,42,.28); }
 }
 @keyframes recorderRadarSpin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+  from { rotate: 0deg; }
+  to { rotate: 360deg; }
 }
 @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .recorder-card::before, .recorder-card::after, .measurement-ring, .record-button, .category-pill, .marker-pill-wrap { transition-duration: .01ms; }
-  .recorder-card::before, .recorder-card::after, .measurement-ring:hover .measurement-ring-track circle, .measurement-ring:focus-visible .measurement-ring-track circle, .recording .record-button { animation: none; }
+  .recorder-stage::before, .recorder-stage::after, .measurement-ring, .record-button, .category-pill, .marker-pill-wrap { transition-duration: .01ms; }
+  .recorder-stage::before, .recorder-stage::after, .measurement-ring:hover .measurement-ring-track circle, .measurement-ring:focus-visible .measurement-ring-track circle, .recording .record-button { animation: none; }
 }
 
 @media (max-width: 1050px) {
@@ -350,7 +353,7 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
   .dashboard-grid, .record-page-grid, .checkout-layout { grid-template-columns: 1fr; }
   .dashboard-grid .record-page-grid { display: grid; }
   .dashboard-grid .tag-panel { display: none; }
-  .recorder-card { min-height: 360px; }
+  .recorder-card { --recorder-stage-gap: 10px; height: calc(var(--recorder-orbit-size) + 124px); min-height: 0; }
   .checkout-receipt { position: static; }
   .checkout-category-row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 11px 0; }
   .checkout-category-row > span { grid-column: 2; grid-row: 1; }
@@ -359,15 +362,18 @@ body::before { content: ""; position: fixed; inset: 0; z-index: 20; pointer-even
   .search-input { width: 100%; }
 }
 
+@media (max-width: 640px) {
+  .recorder-card { --recorder-orbit-size: min(clamp(250px, 86vw, 330px), calc(100% - 32px)); --recorder-stage-gap: 12px; height: calc(var(--recorder-orbit-size) + 126px); }
+  .record-controls { flex-wrap: wrap; margin-top: 0; }
+}
+
 @media (max-width: 520px) {
   .main-content { padding-inline: 11px; }
   .page-header { align-items: center; }
   .page-header h1 { font-size: 33px; }
   .local-badge { font-size: 0; width: 45px; height: 42px; display: grid; place-items: center; }
   .local-badge::after { content: "▣"; font-size: 18px; }
-  .recorder-card { padding: 16px; min-height: 340px; }
-  .measurement-ring { width: 235px; height: 235px; }
-  .record-button { width: 174px; height: 174px; }
+  .recorder-card { --recorder-stage-gap: 12px; padding: 16px; height: calc(var(--recorder-orbit-size) + 106px); min-height: 0; }
   .record-button strong { font-size: 21px; }
   .record-controls { flex-wrap: wrap; gap: 10px; }
   .receipt-card { padding-inline: 25px; }
