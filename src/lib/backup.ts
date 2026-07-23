@@ -1,7 +1,6 @@
-import type { BackupManifest, BackupRecord, EvidenceRecord } from "../types";
+import type { BackupManifest, BackupRecord, EvidenceRecord, CategoryDefinition, PersonDefinition } from "../types";
 import { safeFileName } from "./format";
 import { legacyCategoryId } from "./db";
-import type { CategoryDefinition } from "../types";
 
 type ZipEntry = { name: string; data: Uint8Array };
 
@@ -106,7 +105,7 @@ export function readStoredZip(buffer: ArrayBuffer) {
   return files;
 }
 
-export async function buildBackup(records: EvidenceRecord[], categories: CategoryDefinition[]) {
+export async function buildBackup(records: EvidenceRecord[], categories: CategoryDefinition[], people: PersonDefinition[]) {
   const entries: ZipEntry[] = [];
   const manifestRecords = [];
   for (const record of records) {
@@ -118,9 +117,10 @@ export async function buildBackup(records: EvidenceRecord[], categories: Categor
   }
   const manifest: BackupManifest = {
     format: "shut-up-evidence-backup",
-    version: 4,
+    version: 6,
     exportedAt: new Date().toISOString(),
     categories,
+    people,
     records: manifestRecords,
   };
   entries.unshift({
@@ -143,6 +143,7 @@ export function parseBackup(buffer: ArrayBuffer) {
     version?: number;
     exportedAt?: string;
     categories?: CategoryDefinition[];
+    people?: PersonDefinition[];
     quickTags?: string[];
     records?: RawRecord[];
   };
@@ -152,27 +153,46 @@ export function parseBackup(buffer: ArrayBuffer) {
   if (raw.format === "swear-cashier-backup" && raw.version === 1) {
     const manifest: BackupManifest = {
       format: "shut-up-evidence-backup",
-      version: 4,
+      version: 6,
       exportedAt: raw.exportedAt || new Date().toISOString(),
       categories: [],
+      people: [],
       records: raw.records.map((record): BackupRecord => ({
         ...record,
         occurredAt: record.occurredAt || record.createdAt,
         fileSize: record.fileSize || 0,
         categoryIds: [],
+        personId: null,
+        photoItems: [],
+        audioWorkflowStage: "marking",
+        legacyWholeAssignmentPending: false,
       })),
     };
     return { files, manifest };
   }
   if (
     raw.format !== "shut-up-evidence-backup"
-    || ![2, 3, 4].includes(raw.version || 0)
+    || ![2, 3, 4, 5, 6].includes(raw.version || 0)
   ) {
     throw new Error("不是相容的髒話收銀機備份");
   }
   const categories = Array.isArray(raw.categories)
     ? raw.categories
     : (Array.isArray(raw.quickTags) ? raw.quickTags.map((name) => ({ id: legacyCategoryId(name), name, unitPrice: 0, billingMode: "once-per-evidence" as const })) : []);
-  const manifest = { ...raw, version: 4, categories, records: raw.records.map((record) => ({ ...record, categoryIds: record.categoryIds || [] })) } as BackupManifest;
+  const people = Array.isArray(raw.people) ? raw.people : [];
+  const manifest = {
+    ...raw,
+    version: 6,
+    categories,
+    people,
+    records: raw.records.map((record) => ({
+      ...record,
+      categoryIds: record.categoryIds || [],
+      personId: record.personId || null,
+      photoItems: record.photoItems || [],
+      audioWorkflowStage: record.audioWorkflowStage || "marking",
+      legacyWholeAssignmentPending: Boolean(record.legacyWholeAssignmentPending),
+    })),
+  } as BackupManifest;
   return { files, manifest };
 }

@@ -1,15 +1,17 @@
-import type { CategoryDefinition, EvidenceRecord } from "../types";
+import type { CategoryDefinition, EvidenceRecord, PersonDefinition } from "../types";
 import { formatDate, formatDuration } from "../lib/format";
-import { categoryLabels } from "../lib/categories";
+import { categoryIdsForRecord, categoryLabels, personIdsForRecord, personName } from "../lib/categories";
 
 export function RecordsTable({
   records,
   categories,
+  people,
   onOpen,
   limit,
 }: {
   records: EvidenceRecord[];
   categories: CategoryDefinition[];
+  people: PersonDefinition[];
   onOpen: (record: EvidenceRecord) => void;
   limit?: number;
 }) {
@@ -25,6 +27,7 @@ export function RecordsTable({
             <th>發生時間</th>
             <th>時長／數量</th>
             <th>標籤</th>
+            <th>人物</th>
             <th>明細</th>
           </tr>
         </thead>
@@ -50,13 +53,17 @@ export function RecordsTable({
                 {record.kind === "audio" ? formatDuration(record.duration) : "1 張"}
               </td>
               <td>
-                {categoryLabels(record.categoryIds, categories).length ? (
-                  categoryLabels(record.categoryIds, categories).slice(0, 2).map((tag) => (
-                    <span className="mini-tag" key={tag}>{tag}</span>
-                  ))
+                {categoryLabels(categoryIdsForRecord(record), categories).length ? (
+                  <>
+                    <span className="mini-tag">{categoryLabels(categoryIdsForRecord(record), categories)[0]}</span>
+                    {categoryLabels(categoryIdsForRecord(record), categories).length > 1 && <span className="mini-tag">+{categoryLabels(categoryIdsForRecord(record), categories).length - 1}</span>}
+                  </>
                 ) : (
                   <span className="muted">未標記</span>
                 )}
+              </td>
+              <td>
+                {personIdsForRecord(record).length ? personIdsForRecord(record).map((id) => <span className="mini-tag" key={id}>{personName(id, people)}</span>) : <span className="muted">未指定</span>}
               </td>
               <td>
                 <button className="icon-button" aria-label={`開啟 ${record.title}`}>▤</button>

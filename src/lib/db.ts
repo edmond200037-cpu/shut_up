@@ -1,10 +1,11 @@
-import { type CategoryDefinition, type AudioMarker, type EvidenceRecord } from "../types";
+import { type CategoryDefinition, type AudioMarker, type AudioWorkflowStage, type EvidenceRecord, type PersonDefinition, type PhotoEvidenceItem } from "../types";
 
 const DB_NAME = "swear-cashier-local";
 const DB_VERSION = 2;
 const RECORD_STORE = "evidence";
 const SETTING_STORE = "settings";
 const CATEGORY_KEY = "categories";
+const PEOPLE_KEY = "people";
 
 type StoredSetting<T> = { key: string; value: T };
 
@@ -55,6 +56,13 @@ function normalizeCategory(value: unknown): CategoryDefinition | null {
   };
 }
 
+function normalizePerson(value: unknown): PersonDefinition | null {
+  if (!value || typeof value !== "object") return null;
+  const person = value as Partial<PersonDefinition>;
+  if (typeof person.id !== "string" || !person.id || typeof person.name !== "string" || !person.name.trim()) return null;
+  return { id: person.id, name: person.name.trim() };
+}
+
 export function normalizeMarkers(markers: unknown, recordingId: string): AudioMarker[] {
   if (!Array.isArray(markers)) return [];
   return markers.flatMap((value, index) => {
@@ -78,31 +86,60 @@ export function normalizeMarkers(markers: unknown, recordingId: string): AudioMa
       id: typeof marker.id === "string" && marker.id ? marker.id : `${recordingId}-MARK-${index + 1}`,
       timestamp: safeTimestamp,
       previewStart: Math.max(0, safeTimestamp - 10),
+      personId: typeof marker.personId === "string" && marker.personId ? marker.personId : null,
       categoryIds: [...new Set(categoryIds)],
       category: legacyNames[0],
     }];
   });
 }
 
+function normalizePhotoItems(value: unknown, recordId: string, categoryIds: string[]): PhotoEvidenceItem[] {
+  if (Array.isArray(value)) {
+    const normalized = value.flatMap((item, index) => {
+      if (!item || typeof item !== "object") return [];
+      const raw = item as Partial<PhotoEvidenceItem>;
+      return [{
+        id: typeof raw.id === "string" && raw.id ? raw.id : `${recordId}-EVIDENCE-${index + 1}`,
+        personId: typeof raw.personId === "string" && raw.personId ? raw.personId : null,
+        categoryIds: Array.isArray(raw.categoryIds) ? [...new Set(raw.categoryIds.filter((id): id is string => typeof id === "string" && Boolean(id)))] : [],
+      }];
+    });
+    if (normalized.length) return normalized;
+  }
+  return [{ id: `${recordId}-EVIDENCE-1`, personId: null, categoryIds: [...new Set(categoryIds)] }];
+}
+
+function normalizeAudioStage(value: unknown, hasMarkers: boolean): AudioWorkflowStage {
+  return value === "classifying" || value === "marking" ? value : hasMarkers ? "classifying" : "marking";
+}
+
 function normalizeRecord(record: Partial<EvidenceRecord> & Pick<EvidenceRecord, "id" | "blob">): EvidenceRecord {
   const createdAt = record.createdAt || new Date().toISOString();
+  const kind = record.kind === "photo" ? "photo" : "audio";
+  const categoryIds = Array.isArray(record.categoryIds)
+    ? record.categoryIds.filter((id): id is string => typeof id === "string" && Boolean(id))
+    : (Array.isArray(record.tags) ? record.tags.filter((tag): tag is string => typeof tag === "string" && Boolean(tag.trim())).map(legacyCategoryId) : []);
+  const markers = normalizeMarkers(record.markers, record.id);
+  const hasLegacyWholeAssignment = kind === "audio" && (categoryIds.length > 0 || (typeof record.personId === "string" && Boolean(record.personId))) && record.legacyWholeAssignmentPending !== false;
   return {
     id: record.id,
-    kind: record.kind === "photo" ? "photo" : "audio",
+    kind,
     title: record.title || "未命名紀錄",
     occurredAt: record.occurredAt || createdAt,
     createdAt,
     duration: record.duration,
     tags: Array.isArray(record.tags) ? record.tags : [],
-    categoryIds: Array.isArray(record.categoryIds)
-      ? record.categoryIds.filter((id): id is string => typeof id === "string" && Boolean(id))
-      : (Array.isArray(record.tags) ? record.tags.filter((tag): tag is string => typeof tag === "string" && Boolean(tag.trim())).map(legacyCategoryId) : []),
-    markers: normalizeMarkers(record.markers, record.id),
+    categoryIds,
+    markers,
+    audioWorkflowStage: kind === "audio" ? normalizeAudioStage(record.audioWorkflowStage, markers.length > 0) : "classifying",
+    legacyWholeAssignmentPending: hasLegacyWholeAssignment,
     notes: record.notes || "",
     amount: Number(record.amount) || 0,
     mime: record.mime || record.blob.type || "application/octet-stream",
     fileName: record.fileName || `${record.id}.bin`,
     fileSize: Number(record.fileSize) || record.blob.size,
+    personId: typeof record.personId === "string" && record.personId ? record.personId : null,
+    photoItems: kind === "photo" ? normalizePhotoItems(record.photoItems, record.id, categoryIds) : [],
     sha256: record.sha256,
     blob: record.blob,
   };
@@ -147,6 +184,28 @@ export async function getCategories() {
   return migrated;
 }
 
+export async function getPeople() {
+  const database = await openDatabase();
+  const stored = await requestValue(database.transaction(SETTING_STORE, "readonly").objectStore(SETTING_STORE).get(PEOPLE_KEY));
+  const setting = stored as StoredSetting<PersonDefinition[]> | undefined;
+  return Array.isArray(setting?.value)
+    ? setting.value.map(normalizePerson).filter((value): value is PersonDefinition => Boolean(value))
+    : [];
+}
+
+export async function putPeople(people: PersonDefinition[]) {
+  const database = await openDatabase();
+  const seen = new Set<string>();
+  const normalized = people.map(normalizePerson).filter((value): value is PersonDefinition => {
+    if (!value || seen.has(value.name)) return false;
+    seen.add(value.name);
+    return true;
+  });
+  await requestValue(
+    database.transaction(SETTING_STORE, "readwrite").objectStore(SETTING_STORE).put({ key: PEOPLE_KEY, value: normalized } satisfies StoredSetting<PersonDefinition[]>),
+  );
+}
+
 export async function putCategories(categories: CategoryDefinition[]) {
   const database = await openDatabase();
   const normalized = categories.map(normalizeCategory).filter((value): value is CategoryDefinition => Boolean(value));
@@ -178,6 +237,10 @@ export async function deleteCategory(category: CategoryDefinition) {
           categoryIds: marker.categoryIds.filter((id) => id !== category.id),
           category: marker.category === category.name ? "" : marker.category,
         }));
+        record.photoItems = (record.photoItems || []).map((item) => ({
+          ...item,
+          categoryIds: item.categoryIds.filter((id) => id !== category.id),
+        }));
         cursor.update(record);
         cursor.continue();
       };
@@ -185,6 +248,34 @@ export async function deleteCategory(category: CategoryDefinition) {
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error || new Error("刪除分類失敗"));
+  });
+}
+
+export async function deletePerson(person: PersonDefinition) {
+  const database = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction([RECORD_STORE, SETTING_STORE], "readwrite");
+    const records = transaction.objectStore(RECORD_STORE);
+    const settings = transaction.objectStore(SETTING_STORE);
+    const peopleRequest = settings.get(PEOPLE_KEY);
+    peopleRequest.onsuccess = () => {
+      const stored = peopleRequest.result as StoredSetting<PersonDefinition[]> | undefined;
+      settings.put({ key: PEOPLE_KEY, value: (stored?.value || []).filter((item) => item.id !== person.id) });
+      const cursorRequest = records.openCursor();
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (!cursor) return;
+        const record = normalizeRecord(cursor.value);
+        record.personId = record.personId === person.id ? null : record.personId;
+        record.markers = (record.markers || []).map((marker) => ({ ...marker, personId: marker.personId === person.id ? null : marker.personId }));
+        record.photoItems = (record.photoItems || []).map((item) => ({ ...item, personId: item.personId === person.id ? null : item.personId }));
+        cursor.update(record);
+        cursor.continue();
+      };
+    };
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error("刪除人物失敗"));
   });
 }
 

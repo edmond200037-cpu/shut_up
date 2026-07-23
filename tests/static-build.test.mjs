@@ -32,4 +32,11 @@ test("build includes shared category and audio marker workflow", async () => {
   assert.match(script, /每次出現/);
   assert.match(script, /每筆證據一次/);
   assert.match(script, /結帳台/);
+  assert.match(script, /人物管理/);
+  assert.match(script, /照片證據/);
+  assert.match(script, /未指定/);
+  assert.match(script, /完成快速標記/);
+  assert.match(script, /匯出摘要/);
+  assert.match(script, /另存 PDF/);
+  assert.doesNotMatch(script, /noopener,noreferrer/);
 });

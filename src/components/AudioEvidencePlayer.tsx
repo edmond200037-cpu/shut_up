@@ -5,16 +5,19 @@ import { CIRCLED_NUMBERS, markerName } from "../lib/audioMarkers";
 
 export type AudioEvidencePlayerHandle = {
   previewMarker: (id: string) => void;
+  addMarkerAtCurrentTime: () => void;
 };
 
 export const AudioEvidencePlayer = forwardRef<AudioEvidencePlayerHandle, {
   record: EvidenceRecord;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onCreateMarker?: (timestamp: number) => void;
 }>(function AudioEvidencePlayer({
   record,
   selectedId,
   onSelect,
+  onCreateMarker,
 }, ref) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -158,7 +161,10 @@ export const AudioEvidencePlayer = forwardRef<AudioEvidencePlayerHandle, {
       const marker = markers.find((item) => item.id === id);
       if (marker) selectMarker(marker);
     },
-  }));
+    addMarkerAtCurrentTime() {
+      onCreateMarker?.(currentTime);
+    },
+  }), [currentTime, markers, onCreateMarker]);
 
   function seekFromTrack(event: MouseEvent<HTMLDivElement>) {
     if ((event.target as HTMLElement).closest("button")) return;

@@ -17,17 +17,25 @@ export function CategorySelector({
   }
 
   return (
-    <fieldset className="category-selector">
-      <legend>{label}</legend>
+    <section className="category-selector" aria-label={label}>
+      <div className="section-inline-title"><h3>{label}</h3><span>可複選</span></div>
       <div className="category-selector-grid">
-        {categories.map((category) => (
-          <label className={`category-check category-${categoryColor(category.id, categories)} ${selectedIds.includes(category.id) ? "active" : ""}`} key={category.id}>
-            <input type="checkbox" checked={selectedIds.includes(category.id)} onChange={() => toggle(category.id)} />
-            <span>{category.name}</span>
-          </label>
-        ))}
+        {categories.map((category) => {
+          const selected = selectedIds.includes(category.id);
+          return (
+            <button
+              type="button"
+              className={`category-pill category-${categoryColor(category.id, categories)} ${selected ? "active" : ""}`}
+              key={category.id}
+              aria-pressed={selected}
+              onClick={() => toggle(category.id)}
+            >
+              {category.name}
+            </button>
+          );
+        })}
       </div>
       {!categories.length && <p className="muted">請先到設定建立分類標籤。</p>}
-    </fieldset>
+    </section>
   );
 }

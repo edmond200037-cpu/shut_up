@@ -87,9 +87,11 @@ async function validateRecordedBlob(blob: Blob) {
 
 export function Recorder({
   onSave,
+  onImport,
   flash,
 }: {
   onSave: (record: EvidenceRecord) => Promise<void>;
+  onImport?: (record: EvidenceRecord) => Promise<void>;
   flash: (message: string) => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -185,6 +187,10 @@ export function Recorder({
             tags: [],
             categoryIds: [],
             markers: markerRef.current,
+            audioWorkflowStage: markerRef.current.length ? "classifying" : "marking",
+            legacyWholeAssignmentPending: false,
+            personId: null,
+            photoItems: [],
             notes: "",
             mime,
             fileName: `recording-${startedAt.getTime()}.${extension}`,
@@ -249,6 +255,7 @@ export function Recorder({
       id: `${recordingIdRef.current}-MARK-${markerRef.current.length + 1}`,
       timestamp,
       previewStart: Math.max(0, timestamp - 10),
+      personId: null,
       category: "",
       categoryIds: [],
     };
@@ -258,9 +265,9 @@ export function Recorder({
   }
 
   async function importAudio(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files || []);
-    for (const file of files) {
-      await onSave({
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const record: EvidenceRecord = {
         id: makeId("AUD"),
         kind: "audio",
         title: file.name.replace(/\.[^.]+$/, ""),
@@ -269,16 +276,20 @@ export function Recorder({
         tags: [],
         categoryIds: [],
         markers: [],
+        audioWorkflowStage: "marking",
+        legacyWholeAssignmentPending: false,
+        personId: null,
+        photoItems: [],
         notes: "由本機匯入；發生時間先採用檔案可用日期，可在明細中修改。",
         mime: file.type || "audio/mpeg",
         fileName: file.name,
         fileSize: file.size,
         sha256: await sha256(file),
         blob: file,
-      });
-    }
+      };
+    await (onImport ? onImport(record) : onSave(record));
     event.target.value = "";
-    if (files.length) flash(`已加入 ${files.length} 個音檔。`);
+    flash("音檔已加入，請先播放並建立快速標籤。");
   }
 
   return (
@@ -304,9 +315,9 @@ export function Recorder({
           ) : (
             <button className="secondary-button" onClick={() => inputRef.current?.click()}>上傳既有音檔</button>
           )}
-          <span>{isRecording ? `已加入 ${markers.length} 個時間標記` : "支援多檔匯入"}</span>
+          <span>{isRecording ? `已加入 ${markers.length} 個時間標記` : "一次處理一個音檔"}</span>
         </div>
-        <input ref={inputRef} hidden type="file" accept="audio/*" multiple onChange={importAudio} />
+        <input ref={inputRef} hidden type="file" accept="audio/*" onChange={importAudio} />
       </section>
 
       <section className="panel tag-panel">
