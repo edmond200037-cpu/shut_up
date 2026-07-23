@@ -58,8 +58,9 @@ npm run check
 
 1. 將程式推送到 `main` 分支。
 2. Repository → **Settings** → **Pages**。
-3. 將 **Source** 選為 **GitHub Actions**。
-4. 等待「部署 GitHub Pages」工作流程完成。
+3. 將 **Source** 選為 **GitHub Actions**，不要選 branch／根目錄發布。
+4. 只保留 `.github/workflows/deploy-pages.yml` 這一個 Pages workflow。
+5. 等待「部署 GitHub Pages」工作流程完成；該流程發布的是 Vite 建置後的 `dist/`。
 
 本 Repository 的預期網址：
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "shut-up-shell-v1";
+const CACHE_NAME = "shut-up-shell-v2";
 const SHELL_FILES = ["./", "./manifest.webmanifest", "./favicon.svg"];
 
 async function precacheShell() {
