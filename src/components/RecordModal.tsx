@@ -36,11 +36,6 @@ export function RecordModal({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  useEffect(() => {
-    setDraft(record);
-    setSelectedMarkerId(null);
-  }, [record.id]);
-
   async function updateCategories(categoryIds: string[]) {
     const markers = selectedMarkerId
       ? (draft.markers || []).map((marker) => marker.id === selectedMarkerId ? { ...marker, categoryIds } : marker)

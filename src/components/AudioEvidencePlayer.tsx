@@ -59,7 +59,7 @@ export const AudioEvidencePlayer = forwardRef<AudioEvidencePlayerHandle, {
       if (activeSourceUrlRef.current === nextUrl) activeSourceUrlRef.current = "";
       URL.revokeObjectURL(nextUrl);
     };
-  }, [record.blob, record.duration]);
+  }, [record.blob, record.duration, record.mime]);
 
   function describeMediaError(audio: HTMLAudioElement) {
     const detail = audio.error;

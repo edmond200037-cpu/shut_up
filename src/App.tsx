@@ -426,6 +426,7 @@ export default function App() {
       {notice && <div className="toast" role="status">{notice}</div>}
       {activeRecord && (
         <RecordModal
+          key={activeRecord.id}
           record={activeRecord}
           categories={categories}
           onClose={() => setActiveRecord(null)}
